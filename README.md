@@ -46,6 +46,18 @@ flowchart LR
 Infra réutilisée, pas recréée : VPS + Coolify + n8n déjà en place depuis le
 [Projet 18](https://github.com/valentinratigniet-byte/projet-18-monitoring-energie-rte).
 
+**n8n + Apache Airflow — répartition, pas redondance** :
+- **n8n** (existant) → orchestration de l'**ingestion** : les 6
+  adaptateurs, le mode webhook temps réel du SaaS Marketing. Low-code,
+  event-driven.
+- **Airflow (nouveau)** → orchestration du **pipeline de transformation** :
+  DAG dbt complet (raw → snapshots → staging → marts → tests → slim CI),
+  par domaine puis consolidation. Apporte retries fins, sensors, et le
+  **backfill** natif que n8n gère mal. Combo dbt+Airflow = le pairing
+  d'orchestration le plus reconnu du marché DE. Point de vigilance :
+  charge supplémentaire sur le VPS déjà partagé — à vérifier en Phase 1,
+  même sujet que pour Hermès Agent.
+
 <details>
 <summary><strong>🔍 Voir le schéma détaillé</strong> — sources précises, adaptateurs, staging par domaine, RLS, reverse ETL</summary>
 
@@ -100,7 +112,7 @@ flowchart TD
 
 ## 🚀 Phasage (par domaine, pas par couche technique)
 
-1. Infra partagée (VPS/Coolify existant + Hermès Agent)
+1. Infra partagée (VPS/Coolify existant + Hermès Agent + Airflow)
 2. Domaine 1 — Ventes/Commerce, bout en bout (source sale → nettoyage → staging → fait → RLS → doc)
 3. Domaine 2 — Finance/Compta
 4. Domaine 3 — Marketing/Activité (volume + housekeeping à grande échelle)
@@ -136,15 +148,31 @@ projet-19-plateforme-entreprise/
 ├── README.md
 ├── LICENSE
 ├── domaines/
-│   ├── ventes-commerce/      <- README.md, source/, avant.md, decisions.md, apres.md
+│   ├── ventes-commerce/      <- README.md, source/, avant.md, decisions.md, regles-transformation.md, apres.md
 │   ├── finance-compta/       <- idem
 │   └── marketing-activite/   <- idem
-├── dbt/                       <- projet unique, staging/{ventes,finance,marketing} -> marts constellation
-│                                  snapshots (SCD type 2) + dbt docs (doc technique auto-générée)
-├── entrepot/                  <- dictionnaire de données généré (alimenté par dbt docs), schéma constellation
+├── dbt/                       <- projet unique, raw -> snapshots (SCD 2) -> staging/{ventes,finance,marketing} -> marts constellation
+│                                  + dbt docs (doc technique auto-générée)
+├── airflow/                    <- DAG dbt (raw -> snapshots -> staging -> marts -> tests -> slim CI)
+├── entrepot/                  <- dictionnaire de données généré, schéma `raw` (brut) + constellation (net)
 ├── hermes-agent/               <- config/déploiement Hermès Agent
 └── docs/                       <- documentation transverse, housekeeping
 ```
+
+**Deux couches dans l'entrepôt (bronze/silver-gold)** — une vraie copie
+des bases de production, en deux versions :
+- **Brute** — schéma `raw` : copie 1:1 de ce que chaque adaptateur
+  extrait, sans transformation. C'est sur cette couche que les dbt
+  snapshots s'appliquent (capture l'historique brut avant nettoyage —
+  pattern dbt standard). Conservée pour l'audit et la rejouabilité.
+- **Nette** — staging (nettoyage par domaine) → marts constellation,
+  déjà cadrée.
+
+`regles-transformation.md` (nouveau, par domaine) — table de
+correspondance **colonne brute → colonne nette → règle appliquée → renvoi
+vers `decisions.md`**. Rend visible ce que fait l'ETL entre brut et net
+sans avoir à lire le SQL — `decisions.md` explique le *pourquoi*, ce
+fichier montre le *quoi exactement a changé*.
 
 **`decisions.md` par domaine — journal des prises de décision, pas qu'un
 rapport qualité.** Identifier, compartimenter/sectoriser et **expliquer**
