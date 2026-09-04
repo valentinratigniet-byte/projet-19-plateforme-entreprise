@@ -60,17 +60,45 @@ Infra réutilisée, pas recréée : VPS + Coolify + n8n déjà en place depuis l
 un seul domaine construit et validé de bout en bout avant de lancer le
 suivant — jamais plusieurs chantiers à moitié faits en parallèle.
 
-## 🗃️ Structure du repo (à ce stade)
+## 🗃️ Structure du repo
+
+Un seul repo, un gros dossier par domaine (pas 3 repos séparés) — garde un
+point d'entrée unique et une chaîne dbt unique pour partager facilement les
+dimensions de la constellation entre domaines. Chaque domaine aura sa doc
+"avant/après mission" (état brut chiffré → nettoyage → recommandations pour
+l'équipe métier concernée), dans l'esprit du
+[Projet 02](https://github.com/valentinratigniet-byte/projet-02-pipeline-nettoyage-qualite)
+élargi avec une vraie section recommandations.
 
 ```
 projet-19-plateforme-entreprise/
 ├── README.md
-└── LICENSE
+├── LICENSE
+├── domaines/
+│   ├── ventes-commerce/      <- README.md, source/, avant.md, apres.md
+│   ├── finance-compta/       <- idem
+│   └── marketing-activite/   <- idem
+├── dbt/                       <- projet unique, staging/{ventes,finance,marketing} -> marts constellation
+├── entrepot/                  <- dictionnaire de données généré, schéma constellation
+├── hermes-agent/               <- config/déploiement Hermès Agent
+└── docs/                       <- documentation transverse, housekeeping
 ```
 
-Se remplira domaine par domaine au fil des phases — voir l'issue #2 pour
-le détail de chaque brique (simulateurs d'usage, dbt, RLS, Hermès Agent,
-connectique).
+**Extraction — un adaptateur par type de source, pas par domaine** :
+connecteur SQL générique, connecteur fichier (CSV/Excel) générique,
+connecteur JSON générique, orchestrés par n8n — réutilisables tels quels
+pour un futur 4e domaine. Chaque domaine simule un format différent et
+délibérément mal fichu (pas 3× la même base) :
+
+| Domaine | Format source | Défauts injectés par le simulateur d'usage |
+|---|---|---|
+| Ventes/Commerce | Postgres (OLTP) | FK partielles, doublons clients, statuts incohérents |
+| Finance/Compta | Exports CSV/Excel | Montants texte FR, colonnes renommées d'un export à l'autre, doublons de saisie |
+| Marketing/Activité | Flux JSON | Structure à aplatir, UTM incohérents, nulls, événements dupliqués |
+
+Structure vide à ce stade — se remplira domaine par domaine au fil des
+phases. Voir [l'issue #2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
+pour le détail complet de chaque brique.
 
 ---
 
