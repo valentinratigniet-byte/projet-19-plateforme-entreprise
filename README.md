@@ -39,7 +39,7 @@ flowchart LR
     ETL --> DWH["Entrepôt — modèle constellation\ndimensions partagées + faits multiples"]
     DWH --> BI["Power BI + Metabase"]
     DWH --> FIL["Filiation (lignage)"]
-    HERMES["Hermès Agent\n(VPS/Coolify du Projet 18)"] -.surveille.-> ETL
+    HERMES["Hermès Agent\n(Phase 8, optionnelle)"] -.surveille.-> ETL
     HERMES -.surveille.-> DWH
 ```
 
@@ -59,9 +59,11 @@ Infra réutilisée, pas recréée : VPS + Coolify + n8n déjà en place depuis l
   DAG dbt complet (raw → snapshots → staging → marts → tests → slim CI),
   par domaine puis consolidation. Apporte retries fins, sensors, et le
   **backfill** natif que n8n gère mal. Combo dbt+Airflow = le pairing
-  d'orchestration le plus reconnu du marché DE. Point de vigilance :
-  charge supplémentaire sur le VPS déjà partagé — à vérifier en Phase 1,
-  même sujet que pour Hermès Agent.
+  d'orchestration le plus reconnu du marché DE. Charge VPS vérifiée
+  (2026-09-04) : **2 vCPU, 7.8 Gi RAM (~5 Gi disponibles), 86 Go disque
+  libres**, charge actuelle légère (Coolify + n8n + Metabase ≈ 2 Gi
+  utilisés) — de la marge pour Airflow, mais les 2 vCPU restent le point
+  de vigilance réel une fois plusieurs domaines actifs en parallèle.
 
 <details>
 <summary><strong>🔍 Voir le schéma détaillé</strong> — sources précises, adaptateurs, staging par domaine, RLS, reverse ETL</summary>
@@ -70,6 +72,10 @@ Un couloir par domaine (source → adaptateur → brut → net), qui converge
 vers l'entrepôt, puis un seul bloc d'exploitation en aval — plutôt qu'un
 maillage de flèches, pour rester lisible malgré le nombre de briques.
 Couleurs = même famille que la charte du portfolio (Petrol & Ambre).
+**Hermès Agent (en rouge) fait partie de l'architecture cible mais est en
+standby, Phase 8 optionnelle** — les nœuds `HERMES` ci-dessous représentent
+ce qui sera branché *si* cette phase se fait, pas ce qui existe dès la
+Phase 1.
 
 ```mermaid
 flowchart TD
@@ -139,13 +145,23 @@ flowchart TD
 
 ## 🚀 Phasage (par domaine, pas par couche technique)
 
-1. Infra partagée (VPS/Coolify existant + Hermès Agent + Airflow)
+1. Infra partagée (VPS/Coolify existant + Airflow)
 2. Domaine 1 — Ventes/Commerce, bout en bout (source sale → nettoyage → staging → fait → RLS → doc)
 3. Domaine 2 — Finance/Compta
 4. Domaine 3 — Marketing/Activité (volume + housekeeping à grande échelle)
 5. Consolidation constellation + dictionnaire global + connectique multi-domaines + **analyse transverse** (`docs/analyse-transverse.md`, livrable obligatoire)
 6. Housekeeping transverse (index/bloat sur les 3 sources + l'entrepôt)
 7. Filiation branché
+8. **(Optionnelle) Hermès Agent** — en standby, ajoutée seulement si le
+   reste du projet est solide et que ça vaut le temps investi. Surveiller
+   un pipeline qui n'existe pas encore n'a pas de sens — même schéma que
+   le Projet 18, où l'alerting est arrivé après le build initial.
+   Architecture déjà tranchée si cette phase se fait : surveillance
+   périodique (fraîcheur/RLS/bloat/dépendance SaaS/changements
+   structurels) sur un **modèle local** (Ollama — la latence ne compte pas
+   pour du monitoring en tâche de fond, VPS limité à 2 vCPU vérifié) +
+   réponse aux questions posées en direct sur **API Claude** (coût à
+   l'usage réel, quasi nul car ponctuel). Coût de base : 0€.
 
 **Analyse transverse (Phase 5)** — le fil narratif qui a motivé le choix
 des 3 domaines dès le départ, rendu explicite plutôt qu'implicite : suit
