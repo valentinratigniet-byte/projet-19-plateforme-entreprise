@@ -132,6 +132,24 @@ un job batch nocturne dépose un export à largeur fixe, pas une connexion
 SQL directe. C'est ce qu'on simule honnêtement, documenté comme hypothèse
 assumée (même discipline "mesuré pas inventé" que le reste du portfolio).
 
+**Source SaaS Marketing — poussée au-delà du simple polling API** :
+
+1. **Push ET pull** — webhook temps réel (n8n, trigger natif) pour les
+   événements (ouverture, clic, désabonnement) + API de polling pour le
+   rattrapage/backfill et la donnée de référence, avec réconciliation des
+   trous laissés par un webhook manqué.
+2. **OAuth2 avec refresh de token** — plus réaliste qu'une clé API
+   statique (comme les vraies SaaS type HubSpot/Salesforce), cycle
+   d'expiration + refresh automatique géré par l'adaptateur, échec de
+   refresh alerté plutôt qu'un crash muet.
+3. **Reverse ETL** — l'entrepôt repousse un segment calculé (ex. issu de
+   l'analyse transverse, Phase 5) vers l'outil SaaS pour une action
+   concrète (campagne de relance ciblée) — boucle DE → BA → **action
+   métier**, pas seulement DE → reporting.
+4. **Hermès Agent surveille la dépendance externe** — pas que la fraîcheur
+   interne : quota API consommé, panne/latence du SaaS, échec de refresh
+   OAuth2 — un vrai sujet de risque fournisseur, notifié comme le reste.
+
 Structure vide à ce stade — se remplira domaine par domaine au fil des
 phases. Voir [l'issue #2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
 pour le détail complet de chaque brique.
