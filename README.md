@@ -1,6 +1,6 @@
 # Projet 19 — Plateforme data d'entreprise multi-domaines
 
-> **🚧 Cadrage figé (validé le 2026-09-04), implémentation pas commencée.** Cadrage complet dans
+> **🚧 En construction — Phase 1 (infra) démarrée le 2026-09-04.** Cadrage complet dans
 > l'issue [valentinratigniet-byte/valentinratigniet-byte#2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
 > (architecture, intérêt par poste cible, doctrine, phasage) — source de
 > vérité, à lire en premier. Ce README sera réécrit au fil de
@@ -323,8 +323,14 @@ assumée (même discipline "mesuré pas inventé" que le reste du portfolio).
    interne : quota API consommé, panne/latence du SaaS, échec de refresh
    OAuth2 — un vrai sujet de risque fournisseur, notifié comme le reste.
 
-Structure vide à ce stade — se remplira domaine par domaine au fil des
-phases. Voir [l'issue #2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
+## ✅ Ce qui est réellement construit et vérifié
+
+**Phase 1 (infra) — Airflow.** Stack `LocalExecutor` minimale, déployée
+sur le VPS existant, webserver + scheduler healthy, DAG de vérification
+exécuté avec succès (`state: success`). Détail complet, y compris ce qui
+n'est *pas* encore fait, dans [`docs/guide-realisation.md`](docs/guide-realisation.md).
+Reste de la structure (domaines, entrepôt) : squelette de dossiers posé,
+contenu réel à venir phase par phase. Voir [l'issue #2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
 pour le détail complet de chaque brique.
 
 ---
