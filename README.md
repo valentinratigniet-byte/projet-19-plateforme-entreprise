@@ -140,7 +140,8 @@ projet-19-plateforme-entreprise/
 │   ├── finance-compta/       <- idem
 │   └── marketing-activite/   <- idem
 ├── dbt/                       <- projet unique, staging/{ventes,finance,marketing} -> marts constellation
-├── entrepot/                  <- dictionnaire de données généré, schéma constellation
+│                                  snapshots (SCD type 2) + dbt docs (doc technique auto-générée)
+├── entrepot/                  <- dictionnaire de données généré (alimenté par dbt docs), schéma constellation
 ├── hermes-agent/               <- config/déploiement Hermès Agent
 └── docs/                       <- documentation transverse, housekeeping
 ```
@@ -166,6 +167,20 @@ Pas qu'un markdown enterré : chaque étape est liée aux objets réels
 qu'elle concerne, et le journal alimente [Filiation](https://github.com/valentinratigniet-byte/projet-14-filiation)
 (branché en dernière phase) — Filiation montre le *chemin* de la donnée,
 `decisions.md` montre le *raisonnement* derrière chaque étape de ce chemin.
+
+**Versionning — code et données.** Le code (dbt, adaptateurs, doc) est
+versionné dans le repo Git unique, comme le reste. Les données historisées
+via **dbt snapshots** (SCD type 2 natif) là où c'est pertinent par domaine
+(client qui change de segment, statut de commande qui évolue, budget
+révisé...) plutôt qu'un `dbt run` qui écrase l'état précédent — choix
+documenté dans `decisions.md`, étape Entreposage.
+
+**Trois couches de documentation, chacune son rôle** :
+- **dbt docs** (natif, auto-généré) — le *quoi* technique : modèles,
+  colonnes, tests, DAG de lineage dbt. Alimente `entrepot/`.
+- **`decisions.md`** — le *pourquoi* métier derrière chaque choix.
+- **Filiation** — le *chemin* complet inter-systèmes (au-delà de dbt
+  seul), alimenté par les deux précédents, pas un doublon.
 
 **Extraction — un adaptateur par type de source, pas par domaine**,
 orchestrés par n8n, réutilisables tels quels pour un futur 4e domaine.
