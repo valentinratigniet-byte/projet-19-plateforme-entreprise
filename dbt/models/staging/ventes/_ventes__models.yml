@@ -1,0 +1,26 @@
+version: 2
+
+models:
+  - name: stg_ventes_clients
+    description: "Fichier clients AS/400 nettoyé -- doublons probables flagués, pas supprimés."
+    columns:
+      - name: clicod
+        tests: [not_null, unique]
+
+  - name: stg_ventes_commandes
+    description: "Commandes AS/400 nettoyées -- dates normalisées, statuts regroupés, FK partielle flaguée."
+    columns:
+      - name: cmdnum
+        tests: [not_null, unique]
+      - name: date_commande
+        tests: [not_null]
+      - name: statut
+        tests:
+          - accepted_values:
+              values: ["VALIDEE", "LIVREE", "ANNULEE", "INCONNU"]
+
+  - name: stg_ventes_remises
+    description: "Grille de remises réconciliée (v3/v4, le plus récent par client) -- rapprochement CLICOD pas encore fait."
+    columns:
+      - name: client_nom_saisi
+        tests: [not_null, unique]

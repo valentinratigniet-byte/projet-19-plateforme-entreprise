@@ -109,6 +109,40 @@ ressource existante mal configurée à corriger après coup.
   cohérent) — et un `SELECT` direct confirme les doublons clients
   (`CL9xxxxx`, 14 lignes) et le `_source_file` bien tracé par ligne.
 
+**dbt — snapshots + staging écrits et vérifiés** (exécuté via l'image
+officielle `ghcr.io/dbt-labs/dbt-postgres:1.8.latest`, pas d'image maison) :
+- `snapshots/ventes_clients_snapshot.sql` — SCD type 2 (stratégie `check`,
+  pas `timestamp` : l'AS/400 ne fournit pas de colonne de dernière
+  modification fiable) sur `raw.ventes_clients`.
+- `models/staging/ventes/` — 3 modèles avec de vraies règles de nettoyage,
+  pas des exemples pédagogiques : `stg_ventes_clients` (doublons probables
+  flagués via nom normalisé, pas supprimés), `stg_ventes_commandes`
+  (détection du format de date YYYYMMDD vs DDMMYYYY, statuts regroupés
+  par préfixe, centimes→euros, FK partielle flaguée via `client_connu`),
+  `stg_ventes_remises` (réconciliation v3/v4 par version + date
+  d'ingestion, formule Excel cassée détectée et exclue sans planter).
+- **9/9 tests dbt passent**, dont un test singulier
+  (`assert_montant_ht_coherent`, vérifie `montant = qté × prix`).
+
+**3 vrais bugs rencontrés et corrigés** (pas anticipés à l'avance) :
+1. Colonnes brutes créées avec identifiants cités en majuscules
+  (`"CLICOD"`) — le snapshot dbt les référençait sans guillemets, Postgres
+  les cherchait en minuscules → `column does not exist`. Corrigé en
+  citant les colonnes dans la config du snapshot.
+2. `ALTER DEFAULT PRIVILEGES` ne s'applique qu'aux objets créés PAR le
+  rôle qui exécute la commande — les tables `raw` sont créées par
+  `ingestion`, pas par `postgres` → `dbt_transform` ne pouvait pas les
+  lire. Corrigé avec la variante `FOR ROLE ingestion`.
+3. Le snapshot tentait d'écrire dans le schéma `raw` (possédé par
+  `ingestion`, lecture seule pour `dbt_transform`) → `permission denied`.
+  Corrigé en déplaçant `target_schema` vers `raw_historise`, un schéma
+  que `dbt_transform` possède — garde la séparation des privilèges
+  ingestion/transformation plutôt que d'élargir les droits.
+
+**Idempotence vérifiée** : un 2e `dbt snapshot` sans changement de donnée
+→ `INSERT 0 0` (aucune ligne dupliquée), confirme que le mécanisme SCD2
+fonctionne réellement, pas juste "la commande s'exécute sans erreur".
+
 **Pas encore fait** : workflow n8n (pour l'instant lancé manuellement via
-`docker run`), modèles dbt (snapshots/staging), RLS,
+`docker run`), table de faits (marts), RLS,
 `decisions.md`/`regles-transformation.md`/`avant.md`/`apres.md`.

@@ -1,0 +1,12 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: ventes_clients
+        description: "Copie brute de l'export clients AS/400 (dernier mois, remplacé à chaque run)."
+      - name: ventes_commandes
+        description: "Copie brute de l'export commandes AS/400 (append, tous les mois cumulés)."
+      - name: ventes_remises
+        description: "Copie brute des 2 fichiers Excel de remises (v3 + v4_FINAL), tels quels."

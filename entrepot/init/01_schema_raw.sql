@@ -14,5 +14,11 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA raw GRANT SELECT, INSERT, UPDATE, DELETE ON T
 -- lecture seule sur raw, ecriture sur les schemas qu'il cree lui-meme.
 CREATE ROLE dbt_transform WITH LOGIN PASSWORD '__DBT_PASSWORD__';
 GRANT USAGE ON SCHEMA raw TO dbt_transform;
-ALTER DEFAULT PRIVILEGES IN SCHEMA raw GRANT SELECT ON TABLES TO dbt_transform;
 GRANT CREATE ON DATABASE projet19 TO dbt_transform;
+
+-- ALTER DEFAULT PRIVILEGES ne s'applique qu'aux objets crees PAR le role
+-- qui execute la commande -- ici "postgres". Les tables raw sont creees
+-- par le role "ingestion" (adaptateurs), pas par postgres : il faut donc
+-- la variante FOR ROLE pour que dbt_transform lise aussi ces tables-la.
+ALTER DEFAULT PRIVILEGES IN SCHEMA raw GRANT SELECT ON TABLES TO dbt_transform;
+ALTER DEFAULT PRIVILEGES FOR ROLE ingestion IN SCHEMA raw GRANT SELECT ON TABLES TO dbt_transform;
