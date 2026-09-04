@@ -1,0 +1,16 @@
+# Piloté par variables d'environnement — même pattern que le Projet 18.
+# PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE/PGSSLMODE fournis par Airflow
+# (secrets .env sur le VPS, jamais commités).
+projet19:
+  target: prod
+  outputs:
+    prod:
+      type: postgres
+      host: "{{ env_var('PGHOST') }}"
+      port: "{{ env_var('PGPORT', '5432') | as_number }}"
+      user: "{{ env_var('PGUSER') }}"
+      password: "{{ env_var('PGPASSWORD') }}"
+      dbname: "{{ env_var('PGDATABASE') }}"
+      schema: "raw"
+      sslmode: "{{ env_var('PGSSLMODE', 'prefer') }}"
+      threads: 4
