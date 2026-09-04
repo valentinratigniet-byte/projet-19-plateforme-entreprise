@@ -52,9 +52,18 @@ Infra réutilisée, pas recréée : VPS + Coolify + n8n déjà en place depuis l
 2. Domaine 1 — Ventes/Commerce, bout en bout (source sale → nettoyage → staging → fait → RLS → doc)
 3. Domaine 2 — Finance/Compta
 4. Domaine 3 — Marketing/Activité (volume + housekeeping à grande échelle)
-5. Consolidation constellation + dictionnaire global + connectique multi-domaines
+5. Consolidation constellation + dictionnaire global + connectique multi-domaines + **analyse transverse** (`docs/analyse-transverse.md`, livrable obligatoire)
 6. Housekeeping transverse (index/bloat sur les 3 sources + l'entrepôt)
 7. Filiation branché
+
+**Analyse transverse (Phase 5)** — le fil narratif qui a motivé le choix
+des 3 domaines dès le départ, rendu explicite plutôt qu'implicite : suit
+campagne marketing → impact ventes → écart budgétaire finance, en
+réutilisant ouvertement les méthodes déjà prouvées du portfolio —
+décomposition Prix/Volume/Mix ([Projet 15](https://github.com/valentinratigniet-byte/projet-15-reporting-ecarts-cg))
+et allocation ABC costing ([Projet 17](https://github.com/valentinratigniet-byte/projet-17-rentabilite-produit-client))
+appliquées sur les données réellement entreposées ici. Boucle
+explicitement DE → BA → CG au lieu de s'arrêter à l'entrepôt.
 
 **Doctrine "tentaculaire mais chirurgical"** (reprise et étendue du Projet 18) :
 un seul domaine construit et validé de bout en bout avant de lancer le
