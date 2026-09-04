@@ -1,6 +1,6 @@
 # Projet 19 — Plateforme data d'entreprise multi-domaines
 
-> **🚧 Cadrage posé, implémentation pas commencée.** Cadrage complet dans
+> **🚧 Cadrage figé (validé le 2026-09-04), implémentation pas commencée.** Cadrage complet dans
 > l'issue [valentinratigniet-byte/valentinratigniet-byte#2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
 > (architecture, intérêt par poste cible, doctrine, phasage) — source de
 > vérité, à lire en premier. Ce README sera réécrit au fil de
