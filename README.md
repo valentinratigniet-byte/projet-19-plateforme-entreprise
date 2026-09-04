@@ -75,7 +75,7 @@ projet-19-plateforme-entreprise/
 ├── README.md
 ├── LICENSE
 ├── domaines/
-│   ├── ventes-commerce/      <- README.md, source/, avant.md, apres.md
+│   ├── ventes-commerce/      <- README.md, source/, avant.md, decisions.md, apres.md
 │   ├── finance-compta/       <- idem
 │   └── marketing-activite/   <- idem
 ├── dbt/                       <- projet unique, staging/{ventes,finance,marketing} -> marts constellation
@@ -83,6 +83,28 @@ projet-19-plateforme-entreprise/
 ├── hermes-agent/               <- config/déploiement Hermès Agent
 └── docs/                       <- documentation transverse, housekeeping
 ```
+
+**`decisions.md` par domaine — journal des prises de décision, pas qu'un
+rapport qualité.** Identifier, compartimenter/sectoriser et **expliquer**
+chaque décision prise sur la donnée à chaque étape, format **donnée
+concernée → décision → pourquoi → alternative écartée** :
+
+1. **Identification** — inventaire de ce qui existe dans la source avant
+   d'extraire (tables/champs, volumétrie, propriétaire métier).
+2. **Compartimentation/sectorisation** — rattachement à un domaine,
+   classification de sensibilité (nourrit la RLS multi-rôles).
+3. **Extraction** — quel adaptateur choisi et pourquoi, limites acceptées.
+4. **Traitement** — transformations métier appliquées et leur raison.
+5. **Nettoyage** — chaque règle du staging dbt, justifiée et chiffrée.
+6. **Entreposage** — choix de modélisation (grain, clés, dimensions
+   partagées, historisation).
+7. **Exploitation** — quel dashboard/KPI/décision métier la donnée rend
+   possible au final.
+
+Pas qu'un markdown enterré : chaque étape est liée aux objets réels
+qu'elle concerne, et le journal alimente [Filiation](https://github.com/valentinratigniet-byte/projet-14-filiation)
+(branché en dernière phase) — Filiation montre le *chemin* de la donnée,
+`decisions.md` montre le *raisonnement* derrière chaque étape de ce chemin.
 
 **Extraction — un adaptateur par type de source, pas par domaine**,
 orchestrés par n8n, réutilisables tels quels pour un futur 4e domaine.
