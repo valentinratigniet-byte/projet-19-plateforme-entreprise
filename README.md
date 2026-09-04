@@ -120,11 +120,11 @@ orchestrés par n8n, réutilisables tels quels pour un futur 4e domaine.
 Chaque domaine s'appuie sur une **vraie techno d'entreprise**, pas un mock
 Postgres déguisé (pas 3× la même base) :
 
-| Domaine | Techno principale | Pourquoi | Source secondaire |
+| Domaine | Techno principale | Pourquoi | Sources secondaires |
 |---|---|---|---|
 | Ventes/Commerce | **AS/400 (DB2 for i)** — simulé en export batch fichier plat, conventions AS/400 authentiques | Très répandu en ERP/gestion commerciale industrie/distribution françaises | — |
 | Finance/Compta | **SQL Server** (Docker `mcr.microsoft.com/mssql/server`) | Techno standard des ERP compta (Sage, Cegid, SAP Business One) | Export CSV relevés bancaires |
-| Marketing/Activité | **MySQL** (Docker `mysql:8`) | Techno standard des stacks web/CRM | Flux JSON d'événements (tracking) |
+| Marketing/Activité | **MySQL** (Docker `mysql:8`) | Techno standard des stacks web/CRM | **API SaaS** (type Mailchimp/Brevo — pagination, clé API, rate-limit, sync incrémentale) + flux JSON d'événements (tracking) |
 
 Pas de vraie connexion DB2/400 live (licence IBM i) — et ce n'est de toute
 façon pas comme ça qu'un atelier AS/400 réel partage sa donnée en pratique :
