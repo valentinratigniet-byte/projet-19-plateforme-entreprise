@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: projet19-postgres
+    environment:
+      POSTGRES_USER: ${PG_SUPERUSER}
+      POSTGRES_PASSWORD: ${PG_SUPERUSER_PASSWORD}
+      POSTGRES_DB: projet19
+    volumes:
+      - projet19-postgres-data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:5440:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${PG_SUPERUSER}"]
+      interval: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  projet19-postgres-data:

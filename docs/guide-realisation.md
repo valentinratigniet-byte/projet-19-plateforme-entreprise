@@ -58,5 +58,35 @@ avait demandé un contournement via la base Coolify — différence : ici
 c'est une ressource neuve avec labels corrects dès le départ, pas une
 ressource existante mal configurée à corriger après coup.
 
-**Pas encore fait** : le vrai DAG de production (remplace
-`healthcheck.py`, arrive en Phase 2 avec le premier domaine).
+**Pas encore fait à l'issue de la Phase 1** : le vrai DAG de production
+(remplace `healthcheck.py`).
+
+## Phase 2 — Domaine Ventes/Commerce (en cours)
+
+**Simulateurs d'usage** — deux sources écrites et vérifiées :
+- `domaines/ventes-commerce/source/simulateur_as400.py` : 8 mois de
+  fichiers plats à largeur fixe (clients + commandes), conventions AS/400.
+  Défauts confirmés dans le contenu généré (pas juste documentés) :
+  dérive de format de date sur 2 mois, doublons clients, statuts de
+  commande orthographiés de façon incohérente, ~3% de commandes avec
+  `CLICOD` orphelin. Auto-check : largeur de ligne fixe respectée sur tous
+  les fichiers.
+- `domaines/ventes-commerce/source/simulateur_excel_remises.py` : 2
+  fichiers Excel concurrents (`v3`, `v4_FINAL`), remises qui divergent
+  réellement entre les deux pour les mêmes clients, une formule cassée
+  (`#REF!`).
+- Fichiers générés non commités (`.gitignore`) — déterministes (seed
+  fixe), régénérés à la demande par les scripts.
+
+**Entrepôt Postgres déployé et vérifié** :
+- `entrepot/docker-compose.yml` — Postgres auto-hébergé sur le VPS
+  (`/opt/projet19/entrepot/`), même schéma que le déploiement Airflow
+  (secrets écrits directement sur le serveur, jamais commités).
+- Vérifié : schéma `raw` créé (`\dn`), rôles `ingestion` et
+  `dbt_transform` créés sans privilège superuser (`\du`), réseau
+  `entrepot_default` connecté à Airflow (scheduler + webserver) et à n8n
+  pour un accès par nom de conteneur.
+
+**Pas encore fait** : adaptateur d'ingestion (parseur fichier plat +
+lecteur Excel → `raw`), workflow n8n, modèles dbt staging, RLS,
+`decisions.md`/`regles-transformation.md`/`avant.md`/`apres.md`.
