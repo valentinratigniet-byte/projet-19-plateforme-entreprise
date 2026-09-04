@@ -84,17 +84,22 @@ projet-19-plateforme-entreprise/
 └── docs/                       <- documentation transverse, housekeeping
 ```
 
-**Extraction — un adaptateur par type de source, pas par domaine** :
-connecteur SQL générique, connecteur fichier (CSV/Excel) générique,
-connecteur JSON générique, orchestrés par n8n — réutilisables tels quels
-pour un futur 4e domaine. Chaque domaine simule un format différent et
-délibérément mal fichu (pas 3× la même base) :
+**Extraction — un adaptateur par type de source, pas par domaine**,
+orchestrés par n8n, réutilisables tels quels pour un futur 4e domaine.
+Chaque domaine s'appuie sur une **vraie techno d'entreprise**, pas un mock
+Postgres déguisé (pas 3× la même base) :
 
-| Domaine | Format source | Défauts injectés par le simulateur d'usage |
-|---|---|---|
-| Ventes/Commerce | Postgres (OLTP) | FK partielles, doublons clients, statuts incohérents |
-| Finance/Compta | Exports CSV/Excel | Montants texte FR, colonnes renommées d'un export à l'autre, doublons de saisie |
-| Marketing/Activité | Flux JSON | Structure à aplatir, UTM incohérents, nulls, événements dupliqués |
+| Domaine | Techno principale | Pourquoi | Source secondaire |
+|---|---|---|---|
+| Ventes/Commerce | **AS/400 (DB2 for i)** — simulé en export batch fichier plat, conventions AS/400 authentiques | Très répandu en ERP/gestion commerciale industrie/distribution françaises | — |
+| Finance/Compta | **SQL Server** (Docker `mcr.microsoft.com/mssql/server`) | Techno standard des ERP compta (Sage, Cegid, SAP Business One) | Export CSV relevés bancaires |
+| Marketing/Activité | **MySQL** (Docker `mysql:8`) | Techno standard des stacks web/CRM | Flux JSON d'événements (tracking) |
+
+Pas de vraie connexion DB2/400 live (licence IBM i) — et ce n'est de toute
+façon pas comme ça qu'un atelier AS/400 réel partage sa donnée en pratique :
+un job batch nocturne dépose un export à largeur fixe, pas une connexion
+SQL directe. C'est ce qu'on simule honnêtement, documenté comme hypothèse
+assumée (même discipline "mesuré pas inventé" que le reste du portfolio).
 
 Structure vide à ce stade — se remplira domaine par domaine au fil des
 phases. Voir [l'issue #2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
