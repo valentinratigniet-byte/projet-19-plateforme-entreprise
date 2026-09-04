@@ -66,25 +66,6 @@ vers l'entrepôt, puis un seul bloc d'exploitation en aval — plutôt qu'un
 maillage de flèches, pour rester lisible malgré le nombre de briques.
 Couleurs = même famille que la charte du portfolio (Petrol & Ambre).
 
-Légende (schéma séparé pour ne chevaucher aucun élément du flux ci-dessous) :
-
-```mermaid
-flowchart LR
-    classDef source fill:#6c757d,stroke:#495057,color:#ffffff
-    classDef adapter fill:#E4A93C,stroke:#b8842a,color:#1a1a1a
-    classDef staging fill:#137A8B,stroke:#0d5866,color:#ffffff
-    classDef dwh fill:#2FA36B,stroke:#1f7a51,color:#ffffff
-    classDef hermes fill:#D9534F,stroke:#a83a36,color:#ffffff
-    classDef doc fill:#e9ecef,stroke:#adb5bd,color:#1a1a1a,stroke-dasharray: 4 3
-
-    L1["Source brute (prod / raw)"]:::source
-    L2["Adaptateur (n8n)"]:::adapter
-    L3["Staging net (dbt)"]:::staging
-    L4["Entrepôt & Exploitation"]:::dwh
-    L5["Hermès Agent"]:::hermes
-    L6["Documentation"]:::doc
-```
-
 ```mermaid
 flowchart TD
     classDef source fill:#6c757d,stroke:#495057,color:#ffffff
@@ -93,6 +74,18 @@ flowchart TD
     classDef dwh fill:#2FA36B,stroke:#1f7a51,color:#ffffff
     classDef hermes fill:#D9534F,stroke:#a83a36,color:#ffffff
     classDef doc fill:#e9ecef,stroke:#adb5bd,color:#1a1a1a,stroke-dasharray: 4 3
+
+    subgraph LEGEND["🔑 Légende"]
+        direction LR
+        L1["Source brute"]:::source
+        L2["Adaptateur (n8n)"]:::adapter
+        L3["Staging net (dbt)"]:::staging
+        L4["Entrepôt & Exploitation"]:::dwh
+        L5["Hermès Agent"]:::hermes
+        L6["Documentation"]:::doc
+    end
+
+    LEGEND ~~~ DOM_V
 
     subgraph DOM_V["🛒 Ventes/Commerce"]
         direction TB
