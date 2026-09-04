@@ -89,11 +89,13 @@ def main() -> None:
         conn.close()
 
     for table, n in resultats.items():
-        print(f"raw.{table}: {n} lignes chargees")
+        print(f"raw.{table}: {n} nouvelles lignes")
 
+    # ventes_clients (remplacer_table) traite toujours quelque chose --
+    # ventes_commandes/ventes_remises (ajouter_lignes) sont idempotents
+    # par fichier : 0 nouvelle ligne sur un rejeu sans fichier nouveau est
+    # un resultat correct, pas une erreur (cf. ingestion/adaptateurs/postgres_writer.py).
     assert resultats.get("ventes_clients", 0) > 0, "aucun client charge"
-    assert resultats.get("ventes_commandes", 0) > 0, "aucune commande chargee"
-    assert resultats.get("ventes_remises", 0) > 0, "aucune remise chargee"
     print("self-check OK")
 
 

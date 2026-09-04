@@ -176,6 +176,35 @@ fonctionne réellement, pas juste "la commande s'exécute sans erreur".
 - **8/8 cas vérifiés réellement** par `SET ROLE` + comptage, pas
   seulement policies déclarées.
 
-**Pas encore fait** : workflow n8n (pour l'instant lancé manuellement via
-`docker run`), `decisions.md`/`regles-transformation.md`/`avant.md`/
-`apres.md`.
+**2 vrais pièges supplémentaires rencontrés et corrigés en finissant la Phase 2** :
+
+1. **Idempotence de l'ingestion** — en testant le script qui sera appelé
+   par n8n, je l'ai relancé une 2e fois : `raw.ventes_commandes` a
+   doublé (4640 lignes au lieu de 2320), parce que `ajouter_lignes`
+   réinjectait tous les fichiers à chaque exécution, pas seulement les
+   nouveaux. Corrigé avec une table manifeste `raw._fichiers_ingeres`
+   (table cible + nom de fichier) — un fichier déjà ingéré est sauté,
+   pas ré-ajouté. Vérifié : 2 exécutions consécutives → 2320 lignes les
+   deux fois (la 2e n'ajoute rien, correctement).
+2. **RLS qui disparaît à chaque `dbt run`** — un modèle dbt matérialisé
+   en `table` fait un `DROP` + `CREATE` à chaque exécution : les
+   `GRANT`/policies RLS posés à part (script séparé) étaient donc
+   effacés au run suivant. Découvert en relançant `dbt run` après avoir
+   vérifié la RLS une première fois — le 2e test échouait
+   (`permission denied`). Corrigé en déplaçant grants + policies dans un
+   `post_hook` du modèle dbt lui-même (`config(post_hook=[...])`,
+   idempotent via `DROP POLICY IF EXISTS` avant chaque `CREATE POLICY`)
+   — réappliqué automatiquement à chaque run, pas un script qu'on oublie
+   de rejouer. **Vérifié sur 2 runs consécutifs, 8/8 cas RLS OK les deux
+   fois.**
+
+**Workflow n8n** — export JSON prêt (`n8n/ventes-commerce-ingestion-workflow.json`,
+Schedule Trigger quotidien 2h + noeud SSH qui appelle
+`run_ingestion.sh` sur le VPS, secret hors du JSON). **Import dans n8n et
+configuration de la credential SSH restent une étape manuelle** — comme
+pour le déploiement initial de n8n au Projet 18, pas automatisable sans
+clé API n8n déjà en main.
+
+**Reste réellement ouvert** : `decisions.md`/`regles-transformation.md`/
+`avant.md`/`apres.md` (documentation à écrire), import manuel du workflow
+n8n.

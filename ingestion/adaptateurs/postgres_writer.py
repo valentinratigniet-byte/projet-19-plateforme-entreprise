@@ -32,6 +32,42 @@ def _ensure_table(conn, schema: str, table: str, colonnes_sql: list[str]) -> Non
     conn.commit()
 
 
+def _ensure_manifeste(conn, schema: str) -> None:
+    with conn.cursor() as cur:
+        cur.execute(
+            f'CREATE TABLE IF NOT EXISTS "{schema}"."_fichiers_ingeres" '
+            f'("table_cible" TEXT, "source_file" TEXT, "ingere_le" TIMESTAMPTZ DEFAULT now(), '
+            f'PRIMARY KEY ("table_cible", "source_file"))'
+        )
+    conn.commit()
+
+
+def deja_ingere(conn, schema: str, table: str, source_file: str) -> bool:
+    """Idempotence au niveau fichier : un meme fichier source ne doit pas
+    etre ajoute deux fois si le workflow (n8n, cron) est rejoue sur des
+    fichiers deja traites -- distinct du "pas de dedoublonnage" de
+    ajouter_lignes, qui concerne les doublons DEJA presents DANS un
+    fichier recu, pas des relances du meme fichier."""
+    _ensure_manifeste(conn, schema)
+    with conn.cursor() as cur:
+        cur.execute(
+            f'SELECT 1 FROM "{schema}"."_fichiers_ingeres" '
+            f'WHERE "table_cible" = %s AND "source_file" = %s',
+            (table, source_file),
+        )
+        return cur.fetchone() is not None
+
+
+def _marquer_ingere(conn, schema: str, table: str, source_file: str) -> None:
+    with conn.cursor() as cur:
+        cur.execute(
+            f'INSERT INTO "{schema}"."_fichiers_ingeres" ("table_cible", "source_file") '
+            f"VALUES (%s, %s) ON CONFLICT DO NOTHING",
+            (table, source_file),
+        )
+    conn.commit()
+
+
 def _preparer(lignes: list[dict], source_file: str):
     colonnes_orig = list(lignes[0].keys())
     colonnes_sql = [_sanitize_ident(c) for c in colonnes_orig]
@@ -67,11 +103,16 @@ def ajouter_lignes(
     conn, schema: str, table: str, lignes: list[dict], source_file: str
 ) -> int:
     """Append -- pour une source qui exporte des nouveaux enregistrements
-    a chaque run (ex. commandes du mois). Pas de dedoublonnage ici : le
-    brut garde tout ce qui a ete recu, y compris d'eventuels doublons --
-    le dedoublonnage est une regle de nettoyage documentee, pas une
-    decision prise silencieusement a l'ingestion."""
+    a chaque run (ex. commandes du mois). Idempotent au niveau fichier
+    (un `source_file` deja marque ingere est saute -- sinon rejouer le
+    workflow n8n dupliquerait tout a chaque execution). Pas de
+    dedoublonnage EN REVANCHE sur les lignes a l'interieur d'un fichier :
+    le brut garde tout ce qui a ete recu tel quel -- le dedoublonnage
+    intra-fichier est une regle de nettoyage documentee, pas une decision
+    prise silencieusement a l'ingestion."""
     if not lignes:
+        return 0
+    if deja_ingere(conn, schema, table, source_file):
         return 0
     colonnes_sql, rows = _preparer(lignes, source_file)
     _ensure_table(conn, schema, table, colonnes_sql)
@@ -83,4 +124,5 @@ def ajouter_lignes(
             rows,
         )
     conn.commit()
+    _marquer_ingere(conn, schema, table, source_file)
     return len(lignes)

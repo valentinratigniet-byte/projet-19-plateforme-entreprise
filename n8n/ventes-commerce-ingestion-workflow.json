@@ -1,0 +1,39 @@
+{
+  "name": "Projet 19 - Ingestion Ventes/Commerce",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 2 * * *" }
+          ]
+        }
+      },
+      "id": "trigger-quotidien",
+      "name": "Tous les jours a 2h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "command": "bash /opt/projet19/domaines/ventes-commerce/run_ingestion.sh"
+      },
+      "id": "ssh-ingestion",
+      "name": "Ingestion AS/400 + Excel -> raw.ventes_*",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": {
+        "sshPassword": { "id": "A_CONFIGURER", "name": "VPS Projet 19" }
+      }
+    }
+  ],
+  "connections": {
+    "Tous les jours a 2h": {
+      "main": [[{ "node": "Ingestion AS/400 + Excel -> raw.ventes_*", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

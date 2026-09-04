@@ -2,6 +2,8 @@
 .env
 *.env
 !.env.example
+run_ingestion.sh
+!run_ingestion.sh.example
 
 # Airflow runtime
 airflow/logs/

@@ -12,7 +12,29 @@
   documente dans decisions.md (compromis precision/rappel assume : mieux
   vaut une remise manquante qu'une remise fausse attribuee au mauvais
   client).
+
+  RLS en post_hook, pas en script a part : un modele materialise en
+  `table` fait DROP+CREATE a chaque `dbt run`, ce qui efface policies et
+  grants poses separement -- piege reel rencontre, cf.
+  docs/guide-realisation.md. Roles crees ailleurs (entrepot/init/,
+  domaines/ventes-commerce/rls.sql), ce post_hook ne fait que
+  grant/policy, idempotent (DROP POLICY IF EXISTS avant CREATE).
 #}
+
+{{
+    config(
+        post_hook=[
+            "ALTER TABLE {{ this }} ENABLE ROW LEVEL SECURITY",
+            "GRANT SELECT ON {{ this }} TO role_rh, role_finance, role_direction, role_commercial",
+            "DROP POLICY IF EXISTS rh_aucun_acces ON {{ this }}",
+            "CREATE POLICY rh_aucun_acces ON {{ this }} FOR SELECT TO role_rh USING (false)",
+            "DROP POLICY IF EXISTS finance_direction_complet ON {{ this }}",
+            "CREATE POLICY finance_direction_complet ON {{ this }} FOR SELECT TO role_finance, role_direction USING (true)",
+            "DROP POLICY IF EXISTS commercial_tout ON {{ this }}",
+            "CREATE POLICY commercial_tout ON {{ this }} FOR SELECT TO role_commercial USING (true)",
+        ]
+    )
+}}
 
 with clients as (
 
