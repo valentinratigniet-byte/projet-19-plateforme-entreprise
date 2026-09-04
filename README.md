@@ -30,17 +30,65 @@ mais fait seul — voir l'issue de cadrage pour le détail.
 
 ```mermaid
 flowchart LR
-    subgraph Sources["3 bases sources (simulateurs d'usage)"]
-        V["Ventes/Commerce"]
-        F["Finance/Compta"]
-        M["Marketing/Activité"]
+    subgraph SRC_V["Ventes/Commerce"]
+        V1["AS/400 (DB2 for i)\nexport batch fichier plat"]
     end
-    Sources --> ETL["ELT (dbt)\nnettoyage + standardisation"]
-    ETL --> DWH["Entrepôt — modèle constellation\ndimensions partagées + faits multiples"]
-    DWH --> BI["Power BI + Metabase"]
+    subgraph SRC_F["Finance/Compta"]
+        F1["SQL Server"]
+        F2["CSV relevés bancaires"]
+    end
+    subgraph SRC_M["Marketing/Activité"]
+        M1["MySQL"]
+        M2["Flux JSON événementiel"]
+        M3["API SaaS\nOAuth2 · webhook + polling"]
+    end
+
+    subgraph ADAPT["Adaptateurs n8n — un par type de source"]
+        A1["Fichier plat\nlargeur fixe"]
+        A2["SQL Server"]
+        A3["MySQL"]
+        A4["CSV"]
+        A5["JSON"]
+        A6["API REST\npaginée"]
+    end
+
+    V1 --> A1
+    F1 --> A2
+    F2 --> A4
+    M1 --> A3
+    M2 --> A5
+    M3 --> A6
+
+    subgraph STG["Staging dbt — par domaine"]
+        S1["stg_ventes"]
+        S2["stg_finance"]
+        S3["stg_marketing"]
+    end
+
+    A1 --> S1
+    A2 --> S2
+    A4 --> S2
+    A3 --> S3
+    A5 --> S3
+    A6 --> S3
+
+    S1 & S2 & S3 --> DWH["Entrepôt — modèle constellation\ndimensions partagées + faits multiples"]
+
+    DWH --> RLS["RLS multi-rôles\nRH/Finance/Direction/métier"]
+    RLS --> BI["Power BI + Metabase"]
+    DWH --> ANALYSE["Analyse transverse\ncampagne → ventes → écart budgétaire"]
+    ANALYSE --> BI
+    DWH -.segment calculé.-> REV["Reverse ETL"]
+    REV -.-> M3
+
+    DOC["decisions.md par domaine\nIdentification → Exploitation"] -.documente.-> ADAPT
+    DOC -.documente.-> DWH
     DWH --> FIL["Filiation (lignage)"]
-    HERMES["Hermès Agent\n(VPS/Coolify du Projet 18)"] -.surveille.-> ETL
-    HERMES -.surveille.-> DWH
+    DOC -.enrichit.-> FIL
+
+    HERMES["Hermès Agent"] -.surveille interne fraîcheur/dbt/RLS/bloat.-> STG
+    HERMES -.-> DWH
+    HERMES -.surveille externe quota/panne SaaS.-> M3
 ```
 
 Infra réutilisée, pas recréée : VPS + Coolify + n8n déjà en place depuis le
