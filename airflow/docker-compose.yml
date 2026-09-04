@@ -52,6 +52,20 @@ services:
     command: webserver
     ports:
       - "127.0.0.1:8090:8080"
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "airflow_default"
+      traefik.http.routers.http-airflow-projet19.entryPoints: "http"
+      traefik.http.routers.http-airflow-projet19.middlewares: "redirect-to-https-airflow-projet19"
+      traefik.http.routers.http-airflow-projet19.rule: "Host(`airflow-projet19.76.13.43.130.sslip.io`)"
+      traefik.http.routers.http-airflow-projet19.service: "svc-airflow-projet19"
+      traefik.http.middlewares.redirect-to-https-airflow-projet19.redirectscheme.scheme: "https"
+      traefik.http.routers.https-airflow-projet19.entryPoints: "https"
+      traefik.http.routers.https-airflow-projet19.rule: "Host(`airflow-projet19.76.13.43.130.sslip.io`)"
+      traefik.http.routers.https-airflow-projet19.service: "svc-airflow-projet19"
+      traefik.http.routers.https-airflow-projet19.tls: "true"
+      traefik.http.routers.https-airflow-projet19.tls.certresolver: "letsencrypt"
+      traefik.http.services.svc-airflow-projet19.loadbalancer.server.port: "8080"
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
       interval: 30s

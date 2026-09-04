@@ -32,6 +32,31 @@ l'[issue #2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/is
   que le conteneur peut bien lire `/opt/dbt` (volume monté), pas juste que
   le webserver répond.
 
-**Pas encore fait** : routage HTTPS public (Traefik/Coolify), le vrai DAG
-de production (remplace `healthcheck.py`, arrive en Phase 2 avec le
-premier domaine).
+**Routage HTTPS public — fait juste après, même session** :
+
+Airflow n'a pas été déployé via le catalogue Coolify (pas de template
+disponible), donc `coolify-proxy` (Traefik) ne rejoint pas automatiquement
+son réseau comme il le fait pour les ressources gérées par Coolify
+(n8n, Metabase). Reproduit le même schéma manuellement :
+1. Labels Traefik ajoutés sur `airflow-webserver` dans le
+   `docker-compose.yml` (routers http→https redirect + https avec
+   `certresolver: letsencrypt`), en copiant exactement le pattern déjà
+   utilisé par le n8n du Projet 18 (`docker inspect` sur le conteneur n8n
+   pour lire ses labels réels plutôt que deviner).
+2. `docker network connect airflow_default coolify-proxy` — attache
+   manuellement le proxy au réseau d'Airflow (Coolify le fait
+   automatiquement pour ses propres ressources, pas pour celle-ci).
+3. `docker compose up -d airflow-webserver` pour recréer le conteneur avec
+   les nouveaux labels.
+
+**Vérifié** : `http://airflow-projet19.76.13.43.130.sslip.io/health` →
+`302` (redirection vers HTTPS) ; `https://.../health` → `200`, avec
+vérification **stricte** du certificat (pas de `-k`) qui passe — donc un
+vrai certificat Let's Encrypt valide, pas juste servi en HTTPS auto-signé.
+Fonctionné du premier coup, contrairement au Projet 18 où l'équivalent
+avait demandé un contournement via la base Coolify — différence : ici
+c'est une ressource neuve avec labels corrects dès le départ, pas une
+ressource existante mal configurée à corriger après coup.
+
+**Pas encore fait** : le vrai DAG de production (remplace
+`healthcheck.py`, arrive en Phase 2 avec le premier domaine).

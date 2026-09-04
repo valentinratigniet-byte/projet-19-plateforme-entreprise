@@ -327,8 +327,10 @@ assumée (même discipline "mesuré pas inventé" que le reste du portfolio).
 
 **Phase 1 (infra) — Airflow.** Stack `LocalExecutor` minimale, déployée
 sur le VPS existant, webserver + scheduler healthy, DAG de vérification
-exécuté avec succès (`state: success`). Détail complet, y compris ce qui
-n'est *pas* encore fait, dans [`docs/guide-realisation.md`](docs/guide-realisation.md).
+exécuté avec succès (`state: success`), exposée en HTTPS (certificat
+Let's Encrypt valide) sur [airflow-projet19.76.13.43.130.sslip.io](https://airflow-projet19.76.13.43.130.sslip.io).
+Détail complet, y compris ce qui n'est *pas* encore fait, dans
+[`docs/guide-realisation.md`](docs/guide-realisation.md).
 Reste de la structure (domaines, entrepôt) : squelette de dossiers posé,
 contenu réel à venir phase par phase. Voir [l'issue #2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
 pour le détail complet de chaque brique.
