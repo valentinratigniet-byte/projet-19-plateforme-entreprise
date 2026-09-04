@@ -53,6 +53,7 @@ le_plus_recent_par_client as (
 
 select
     client_nom_saisi,
+    upper(regexp_replace(client_nom_saisi, '[^A-Za-z0-9]', '', 'g')) as client_nom_normalise,
     remise_valide,
     remise_pct,
     commentaire,

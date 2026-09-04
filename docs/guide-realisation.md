@@ -143,6 +143,27 @@ officielle `ghcr.io/dbt-labs/dbt-postgres:1.8.latest`, pas d'image maison) :
 → `INSERT 0 0` (aucune ligne dupliquée), confirme que le mécanisme SCD2
 fonctionne réellement, pas juste "la commande s'exécute sans erreur".
 
+**Marts écrits et vérifiés — `dim_client` + `fait_ventes`** :
+- Rapprochement flou nom Excel (saisi à la main) → CLINOM AS/400 via
+  `pg_trgm` (similarité de trigrammes) plutôt qu'un simple `=` — les noms
+  ne matchent jamais exactement entre les deux sources.
+- **Vrai problème de qualité trouvé et corrigé** : au seuil 0.4, deux faux
+  positifs réels (`Legendre SARL` et `Lesage S.A.R.L.` matchaient tous les
+  deux sur `Lefèvre Sarl`, le suffixe juridique commun gonflant le score)
+  — remonté à 0.5 pour les exclure. **Résultat final : seulement 3 des 16
+  remises Excel se rattachent avec confiance à un client AS/400** — la
+  majorité des remises négociées ne peut pas être automatiquement
+  réconciliée sans revue humaine. Un vrai résultat, pas la conclusion
+  espérée, gardé tel quel.
+- `fait_ventes` : grain = une commande, `montant_net_eur` calculé avec la
+  remise rapprochée quand elle existe, sinon = montant HT (pas de remise
+  inventée). 2320 lignes, cohérent avec le staging.
+- Schémas dbt renommés `staging`/`marts` (au lieu de `raw_staging`/
+  `raw_marts`, comportement par défaut de dbt qui concatène le schéma du
+  profil) via un override `generate_schema_name` — cohérent avec la
+  terminologie du cadrage.
+- **14/14 tests dbt passent** (5 nouveaux sur les marts).
+
 **Pas encore fait** : workflow n8n (pour l'instant lancé manuellement via
-`docker run`), table de faits (marts), RLS,
-`decisions.md`/`regles-transformation.md`/`avant.md`/`apres.md`.
+`docker run`), RLS, `decisions.md`/`regles-transformation.md`/`avant.md`/
+`apres.md`.

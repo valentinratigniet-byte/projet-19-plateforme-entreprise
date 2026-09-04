@@ -1,0 +1,16 @@
+version: 2
+
+models:
+  - name: dim_client
+    description: "Clients AS/400 avec remise négociée rapprochée par similarité de nom (pg_trgm, seuil 0.4)."
+    columns:
+      - name: clicod
+        tests: [not_null, unique]
+
+  - name: fait_ventes
+    description: "Une ligne = une commande. Remise appliquée si rapprochement client fiable, sinon montant net = montant HT."
+    columns:
+      - name: cmdnum
+        tests: [not_null, unique]
+      - name: montant_net_eur
+        tests: [not_null]
