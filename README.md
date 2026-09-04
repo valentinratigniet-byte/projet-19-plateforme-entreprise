@@ -1,6 +1,6 @@
 # Projet 19 — Plateforme data d'entreprise multi-domaines
 
-> **🚧 En construction — Phase 1 (infra) démarrée le 2026-09-04.** Cadrage complet dans
+> **🚧 En construction — Phase 1 (infra) et Phase 2 (Domaine Ventes/Commerce) terminées, Phase 3 à venir.** Cadrage complet dans
 > l'issue [valentinratigniet-byte/valentinratigniet-byte#2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
 > (architecture, intérêt par poste cible, doctrine, phasage) — source de
 > vérité, à lire en premier. Ce README sera réécrit au fil de
@@ -145,8 +145,8 @@ flowchart TD
 
 ## 🚀 Phasage (par domaine, pas par couche technique)
 
-1. Infra partagée (VPS/Coolify existant + Airflow)
-2. Domaine 1 — Ventes/Commerce, bout en bout (source sale → nettoyage → staging → fait → RLS → doc)
+1. ✅ Infra partagée (VPS/Coolify existant + Airflow)
+2. ✅ Domaine 1 — Ventes/Commerce, bout en bout (source sale → nettoyage → staging → fait → RLS → doc) — **terminé le 2026-09-05**, cf. [`domaines/ventes-commerce/`](domaines/ventes-commerce/)
 3. Domaine 2 — Finance/Compta
 4. Domaine 3 — Marketing/Activité (volume + housekeeping à grande échelle)
 5. Consolidation constellation + dictionnaire global + connectique multi-domaines + **analyse transverse** (`docs/analyse-transverse.md`, livrable obligatoire)
@@ -329,10 +329,22 @@ assumée (même discipline "mesuré pas inventé" que le reste du portfolio).
 sur le VPS existant, webserver + scheduler healthy, DAG de vérification
 exécuté avec succès (`state: success`), exposée en HTTPS (certificat
 Let's Encrypt valide) sur [airflow-projet19.76.13.43.130.sslip.io](https://airflow-projet19.76.13.43.130.sslip.io).
-Détail complet, y compris ce qui n'est *pas* encore fait, dans
-[`docs/guide-realisation.md`](docs/guide-realisation.md).
-Reste de la structure (domaines, entrepôt) : squelette de dossiers posé,
-contenu réel à venir phase par phase. Voir [l'issue #2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
+Entrepôt Postgres auto-hébergé, schéma `raw` + rôles à privilège minimal.
+
+**Phase 2 (Domaine Ventes/Commerce) — terminée.** Pipeline complet
+vérifié : ingestion conteneurisée et idempotente (AS/400 + Excel) → dbt
+(snapshot SCD2, staging avec règles de nettoyage réelles, marts
+`dim_client`/`fait_ventes`, **14/14 tests**) → RLS multi-rôles
+(**8/8 cas vérifiés par `SET ROLE`**, survit aux reruns dbt) → workflow
+n8n (export prêt). Doc complète du domaine dans
+[`domaines/ventes-commerce/`](domaines/ventes-commerce/)
+(`avant.md`/`decisions.md`/`regles-transformation.md`/`apres.md`).
+
+Détail complet de la construction, y compris les bugs rencontrés et
+corrigés (idempotence, RLS qui disparaît à chaque `dbt run`, casse des
+identifiants...), dans [`docs/guide-realisation.md`](docs/guide-realisation.md).
+Domaines Finance/Compta et Marketing/Activité : squelette posé, contenu
+réel à venir. Voir [l'issue #2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
 pour le détail complet de chaque brique.
 
 ---
