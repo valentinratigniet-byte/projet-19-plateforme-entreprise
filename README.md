@@ -182,6 +182,16 @@ documenté dans `decisions.md`, étape Entreposage.
 - **Filiation** — le *chemin* complet inter-systèmes (au-delà de dbt
   seul), alimenté par les deux précédents, pas un doublon.
 
+**Séquençage et impact d'un changement** : le DAG dbt (déduit
+automatiquement des `ref()`/`source()` entre modèles) garantit l'ordre
+d'exécution et l'absence de cycle. En CI, `dbt build --select
+state:modified+` compare à un état de référence et limite
+exécution/tests aux modèles **modifiés + tout ce qui en dépend en aval** —
+voir l'impact d'un changement sur l'entrepôt avant de le merger, sans
+relancer tout le projet. Hermès Agent étend son rôle à la détection de
+**changements structurels** (DAG modifié, modèle cassé, contrat de schéma
+rompu) — distinct de la surveillance de fraîcheur qu'il fait déjà.
+
 **Extraction — un adaptateur par type de source, pas par domaine**,
 orchestrés par n8n, réutilisables tels quels pour un futur 4e domaine.
 Chaque domaine s'appuie sur une **vraie techno d'entreprise**, pas un mock
