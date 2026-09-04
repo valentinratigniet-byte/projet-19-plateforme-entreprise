@@ -87,6 +87,28 @@ ressource existante mal configurée à corriger après coup.
   `entrepot_default` connecté à Airflow (scheduler + webserver) et à n8n
   pour un accès par nom de conteneur.
 
-**Pas encore fait** : adaptateur d'ingestion (parseur fichier plat +
-lecteur Excel → `raw`), workflow n8n, modèles dbt staging, RLS,
+**Adaptateurs d'ingestion écrits, conteneurisés et vérifiés** :
+- `ingestion/adaptateurs/` — fichier plat (largeur fixe), Excel, écriture
+  Postgres générique. Un par TYPE de source, réutilisables par les autres
+  domaines (doctrine du cadrage), pas réécrits par domaine.
+- `domaines/ventes-commerce/ingestion.py` — orchestration spécifique au
+  domaine (quel spec, quelle table `raw`, remplacement vs ajout).
+- Host du VPS sans psycopg2/openpyxl → conteneurisé (`ingestion/Dockerfile`,
+  image `projet19-ingestion`, 216 Mo), pas d'installation système.
+- 2 bugs réels rencontrés et corrigés pendant le build (pas anticipés à
+  l'avance) : (1) le rôle `ingestion` n'a pas le droit de `CREATE SCHEMA`
+  (seulement des tables dans un schéma existant) — corrigé en retirant
+  cette instruction, le schéma `raw` est déjà créé par l'entrepôt ;
+  (2) un en-tête Excel saisi à la main (`"Remise (%)"`) contient un `%`
+  qui casse le parsing SQL de `psycopg2.extras.execute_values` — corrigé
+  en sanitisant les noms de colonnes (pas les valeurs) avant de les
+  utiliser comme identifiants SQL.
+- **Vérifié réellement** (pas juste "exit 0") : `raw.ventes_clients`
+  314 lignes, `raw.ventes_commandes` 2320 lignes (= somme exacte des 8
+  mois simulés), `raw.ventes_remises` 25 lignes (9 de v3 + 16 de v4,
+  cohérent) — et un `SELECT` direct confirme les doublons clients
+  (`CL9xxxxx`, 14 lignes) et le `_source_file` bien tracé par ligne.
+
+**Pas encore fait** : workflow n8n (pour l'instant lancé manuellement via
+`docker run`), modèles dbt (snapshots/staging), RLS,
 `decisions.md`/`regles-transformation.md`/`avant.md`/`apres.md`.
