@@ -61,49 +61,69 @@ Infra réutilisée, pas recréée : VPS + Coolify + n8n déjà en place depuis l
 <details>
 <summary><strong>🔍 Voir le schéma détaillé</strong> — sources précises, adaptateurs, staging par domaine, RLS, reverse ETL</summary>
 
-Un couloir par domaine (source → adaptateur → staging), qui converge vers
-l'entrepôt, puis un seul bloc d'exploitation en aval — plutôt qu'un
+Un couloir par domaine (source → adaptateur → brut → net), qui converge
+vers l'entrepôt, puis un seul bloc d'exploitation en aval — plutôt qu'un
 maillage de flèches, pour rester lisible malgré le nombre de briques.
+Couleurs = même famille que la charte du portfolio (Petrol & Ambre).
 
 ```mermaid
 flowchart TD
+    classDef source fill:#6c757d,stroke:#495057,color:#ffffff
+    classDef adapter fill:#E4A93C,stroke:#b8842a,color:#1a1a1a
+    classDef staging fill:#137A8B,stroke:#0d5866,color:#ffffff
+    classDef dwh fill:#2FA36B,stroke:#1f7a51,color:#ffffff
+    classDef hermes fill:#D9534F,stroke:#a83a36,color:#ffffff
+    classDef doc fill:#e9ecef,stroke:#adb5bd,color:#1a1a1a,stroke-dasharray: 4 3
+
+    subgraph LEGEND["🔑 Légende"]
+        direction LR
+        L1["Source brute (prod / raw)"]:::source
+        L2["Adaptateur (n8n)"]:::adapter
+        L3["Staging net (dbt)"]:::staging
+        L4["Entrepôt & Exploitation"]:::dwh
+        L5["Hermès Agent"]:::hermes
+        L6["Documentation"]:::doc
+    end
+
     subgraph DOM_V["🛒 Ventes/Commerce"]
         direction TB
-        V1["AS/400 (DB2 for i)\nexport batch fichier plat"] --> VA["Adaptateur fichier plat"] --> VS["stg_ventes"]
+        V1["AS/400 (DB2 for i)\nexport batch fichier plat"]:::source --> VA["Adaptateur fichier plat"]:::adapter --> VR["raw.ventes (brut)"]:::source --> VS["stg_ventes (net)"]:::staging
     end
 
     subgraph DOM_F["💶 Finance/Compta"]
         direction TB
-        F1["SQL Server"] --> FA1["Adaptateur SQL Server"] --> FS["stg_finance"]
-        F2["CSV relevés bancaires"] --> FA2["Adaptateur CSV"] --> FS
+        F1["SQL Server"]:::source --> FA1["Adaptateur SQL Server"]:::adapter --> FR["raw.finance (brut)"]:::source
+        F2["CSV relevés bancaires"]:::source --> FA2["Adaptateur CSV"]:::adapter --> FR
+        FR --> FS["stg_finance (net)"]:::staging
     end
 
     subgraph DOM_M["📣 Marketing/Activité"]
         direction TB
-        M1["MySQL"] --> MA1["Adaptateur MySQL"] --> MS["stg_marketing"]
-        M2["Flux JSON événementiel"] --> MA2["Adaptateur JSON"] --> MS
-        M3["API SaaS\nOAuth2 · webhook + polling"] --> MA3["Adaptateur API REST paginée"] --> MS
+        M1["MySQL"]:::source --> MA1["Adaptateur MySQL"]:::adapter --> MR["raw.marketing (brut)"]:::source
+        M2["Flux JSON événementiel"]:::source --> MA2["Adaptateur JSON"]:::adapter --> MR
+        M3["API SaaS\nOAuth2 · webhook + polling"]:::source --> MA3["Adaptateur API REST paginée"]:::adapter --> MR
+        MR --> MS["stg_marketing (net)"]:::staging
     end
 
-    VS & FS & MS --> DWH["Entrepôt — modèle constellation\ndimensions partagées + faits multiples"]
+    VS & FS & MS --> DWH["Entrepôt — modèle constellation\ndimensions partagées + faits multiples"]:::dwh
 
     subgraph EXPLOIT["Exploitation"]
         direction TB
-        RLS["RLS multi-rôles\nRH / Finance / Direction / métier"] --> BI["Power BI + Metabase"]
-        ANALYSE["Analyse transverse\ncampagne → ventes → écart budgétaire"] --> BI
-        FIL["Filiation (lignage)"]
+        RLS["RLS multi-rôles\nRH / Finance / Direction / métier"]:::dwh --> BI["Power BI + Metabase"]:::dwh
+        ANALYSE["Analyse transverse\ncampagne → ventes → écart budgétaire"]:::dwh --> BI
+        FIL["Filiation (lignage)"]:::dwh
     end
 
     DWH --> RLS
     DWH --> ANALYSE
     DWH --> FIL
-    DWH -.segment calculé.-> REV["Reverse ETL"] -.-> M3
+    DWH -.segment calculé.-> REV["Reverse ETL"]:::adapter -.-> M3
 
-    DOC["decisions.md par domaine\nIdentification → Exploitation"] -.documente.-> DOM_V & DOM_F & DOM_M
+    DOC["decisions.md + regles-transformation.md\npar domaine"]:::doc -.documente.-> DOM_V & DOM_F & DOM_M
     DOC -.documente.-> DWH
     DOC -.enrichit.-> FIL
 
-    HERMES["Hermès Agent"] -.surveille interne fraîcheur/dbt/RLS/bloat.-> DOM_V & DOM_F & DOM_M
+    HERMES["Hermès Agent"]:::hermes -.surveille interne fraîcheur/dbt/RLS/bloat.-> DOM_V & DOM_F & DOM_M
     HERMES -.-> DWH
     HERMES -.surveille externe quota/panne SaaS.-> M3
 ```
