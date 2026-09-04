@@ -198,9 +198,24 @@ projet-19-plateforme-entreprise/
 │                                  + dbt docs (doc technique auto-générée)
 ├── airflow/                    <- DAG dbt (raw -> snapshots -> staging -> marts -> tests -> slim CI)
 ├── entrepot/                  <- dictionnaire de données généré, schéma `raw` (brut) + constellation (net)
-├── hermes-agent/               <- config/déploiement Hermès Agent
+├── hermes-agent/               <- config/déploiement Hermès Agent (Phase 8, optionnelle)
 └── docs/                       <- guide-realisation.md, pieges-*.md, housekeeping
 ```
+
+**Coût — 0€ garanti sur les phases 1 à 7**, 4 décisions explicites pour
+que ce soit vérifié, pas supposé :
+1. **SQL Server (Docker)** — édition `Developer` forcée (`MSSQL_PID=Developer`),
+   pas l'édition Evaluation par défaut qui expire à 180 jours.
+2. **API SaaS Marketing** — simulée par un mock maison (0€ garanti) ou
+   tier gratuit réel, jamais un plan payant.
+3. **Entrepôt Postgres** — auto-hébergé sur le VPS existant via Coolify,
+   pas un nouveau projet Supabase séparé.
+4. **Comparatif pganalyze** (housekeeping, Phase 6) — sur documentation
+   publique, pas un abonnement réel ; pgHero et le script maison, eux,
+   sont réellement déployés.
+
+Le VPS lui-même est un coût déjà engagé pour le Projet 18, pas une
+dépense nouvelle.
 
 **`docs/guide-realisation.md` et `docs/pieges-*.md`** — écrits **au fil de
 l'implémentation réelle**, pas rédigés à l'avance : un guide de
