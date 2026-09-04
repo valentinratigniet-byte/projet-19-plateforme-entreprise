@@ -47,7 +47,7 @@ Infra réutilisée, pas recréée : VPS + Coolify + n8n déjà en place depuis l
 [Projet 18](https://github.com/valentinratigniet-byte/projet-18-monitoring-energie-rte).
 
 **n8n + Apache Airflow — répartition, pas redondance** :
-- **n8n** (existant) → orchestration de l'**ingestion** : les 6
+- **n8n** (existant) → orchestration de l'**ingestion** : les 8
   adaptateurs, le mode webhook temps réel du SaaS Marketing. Low-code,
   event-driven. **3 workflows indispensables, certains dès maintenant** —
   1 par domaine, sur la source principale : ingestion AS/400
@@ -254,8 +254,8 @@ Postgres déguisé (pas 3× la même base) :
 
 | Domaine | Techno principale | Pourquoi | Sources secondaires |
 |---|---|---|---|
-| Ventes/Commerce | **AS/400 (DB2 for i)** — simulé en export batch fichier plat, conventions AS/400 authentiques | Très répandu en ERP/gestion commerciale industrie/distribution françaises | — |
-| Finance/Compta | **SQL Server** (Docker `mcr.microsoft.com/mssql/server`) | Techno standard des ERP compta (Sage, Cegid, SAP Business One) | Export CSV relevés bancaires |
+| Ventes/Commerce | **AS/400 (DB2 for i)** — simulé en export batch fichier plat, conventions AS/400 authentiques | Très répandu en ERP/gestion commerciale industrie/distribution françaises | **Excel/Sheets manuel** — grille tarifaire/remises tenue à la main par l'équipe commerciale (cellules fusionnées, formules figées, versions parallèles) |
+| Finance/Compta | **SQL Server** (Docker `mcr.microsoft.com/mssql/server`) | Techno standard des ERP compta (Sage, Cegid, SAP Business One) | Export CSV relevés bancaires + **Factur-X** — factures fournisseurs, norme française de facturation électronique (EN 16931/UBL/CII, réforme B2B PDP/PPF), avec coexistence transitoire ancien format/Factur-X |
 | Marketing/Activité | **MySQL** (Docker `mysql:8`) | Techno standard des stacks web/CRM | **API SaaS** (type Mailchimp/Brevo — pagination, clé API, rate-limit, sync incrémentale) + flux JSON d'événements (tracking) |
 
 Pas de vraie connexion DB2/400 live (licence IBM i) — et ce n'est de toute
