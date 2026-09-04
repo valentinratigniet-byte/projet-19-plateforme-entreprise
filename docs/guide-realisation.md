@@ -164,6 +164,18 @@ fonctionne réellement, pas juste "la commande s'exécute sans erreur".
   terminologie du cadrage.
 - **14/14 tests dbt passent** (5 nouveaux sur les marts).
 
+**RLS multi-rôles écrite et VÉRIFIÉE par `SET ROLE`** (`domaines/ventes-commerce/rls.sql` + `test_rls.py`, même discipline que le Projet 18) :
+- `role_rh` — aucun accès (0 ligne sur les 2 tables, pas de justification
+  métier à voir la donnée commerciale).
+- `role_finance` / `role_direction` — accès complet (2320/314 lignes,
+  y compris les commandes annulées, nécessaires pour la réconciliation
+  budgétaire et le pilotage).
+- `role_commercial` — commandes actives uniquement, `statut <> 'ANNULEE'`
+  (2052/2320 lignes) — vue opérationnelle, les annulations ne relèvent
+  pas du quotidien commercial.
+- **8/8 cas vérifiés réellement** par `SET ROLE` + comptage, pas
+  seulement policies déclarées.
+
 **Pas encore fait** : workflow n8n (pour l'instant lancé manuellement via
-`docker run`), RLS, `decisions.md`/`regles-transformation.md`/`avant.md`/
+`docker run`), `decisions.md`/`regles-transformation.md`/`avant.md`/
 `apres.md`.
