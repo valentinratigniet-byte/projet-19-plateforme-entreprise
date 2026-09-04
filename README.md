@@ -49,7 +49,12 @@ Infra réutilisée, pas recréée : VPS + Coolify + n8n déjà en place depuis l
 **n8n + Apache Airflow — répartition, pas redondance** :
 - **n8n** (existant) → orchestration de l'**ingestion** : les 6
   adaptateurs, le mode webhook temps réel du SaaS Marketing. Low-code,
-  event-driven.
+  event-driven. **3 workflows indispensables, certains dès maintenant** —
+  1 par domaine, sur la source principale : ingestion AS/400
+  (Ventes/Commerce), ingestion SQL Server (Finance/Compta), ingestion
+  MySQL (Marketing/Activité). Le reste (sources secondaires, webhook/
+  polling SaaS, reverse ETL) attend le besoin réel constaté domaine par
+  domaine, pas figé à l'avance.
 - **Airflow (nouveau)** → orchestration du **pipeline de transformation** :
   DAG dbt complet (raw → snapshots → staging → marts → tests → slim CI),
   par domaine puis consolidation. Apporte retries fins, sensors, et le
