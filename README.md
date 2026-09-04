@@ -30,69 +30,73 @@ mais fait seul — voir l'issue de cadrage pour le détail.
 
 ```mermaid
 flowchart LR
-    subgraph SRC_V["Ventes/Commerce"]
-        V1["AS/400 (DB2 for i)\nexport batch fichier plat"]
+    subgraph Sources["3 bases sources (simulateurs d'usage)"]
+        V["Ventes/Commerce"]
+        F["Finance/Compta"]
+        M["Marketing/Activité"]
     end
-    subgraph SRC_F["Finance/Compta"]
-        F1["SQL Server"]
-        F2["CSV relevés bancaires"]
-    end
-    subgraph SRC_M["Marketing/Activité"]
-        M1["MySQL"]
-        M2["Flux JSON événementiel"]
-        M3["API SaaS\nOAuth2 · webhook + polling"]
-    end
-
-    subgraph ADAPT["Adaptateurs n8n — un par type de source"]
-        A1["Fichier plat\nlargeur fixe"]
-        A2["SQL Server"]
-        A3["MySQL"]
-        A4["CSV"]
-        A5["JSON"]
-        A6["API REST\npaginée"]
-    end
-
-    V1 --> A1
-    F1 --> A2
-    F2 --> A4
-    M1 --> A3
-    M2 --> A5
-    M3 --> A6
-
-    subgraph STG["Staging dbt — par domaine"]
-        S1["stg_ventes"]
-        S2["stg_finance"]
-        S3["stg_marketing"]
-    end
-
-    A1 --> S1
-    A2 --> S2
-    A4 --> S2
-    A3 --> S3
-    A5 --> S3
-    A6 --> S3
-
-    S1 & S2 & S3 --> DWH["Entrepôt — modèle constellation\ndimensions partagées + faits multiples"]
-
-    DWH --> RLS["RLS multi-rôles\nRH/Finance/Direction/métier"]
-    RLS --> BI["Power BI + Metabase"]
-    DWH --> ANALYSE["Analyse transverse\ncampagne → ventes → écart budgétaire"]
-    ANALYSE --> BI
-    DWH -.segment calculé.-> REV["Reverse ETL"]
-    REV -.-> M3
-
-    DOC["decisions.md par domaine\nIdentification → Exploitation"] -.documente.-> ADAPT
-    DOC -.documente.-> DWH
+    Sources --> ETL["ELT (dbt)\nnettoyage + standardisation"]
+    ETL --> DWH["Entrepôt — modèle constellation\ndimensions partagées + faits multiples"]
+    DWH --> BI["Power BI + Metabase"]
     DWH --> FIL["Filiation (lignage)"]
-    DOC -.enrichit.-> FIL
-
-    HERMES["Hermès Agent"] -.surveille interne fraîcheur/dbt/RLS/bloat.-> STG
-    HERMES -.-> DWH
-    HERMES -.surveille externe quota/panne SaaS.-> M3
+    HERMES["Hermès Agent\n(VPS/Coolify du Projet 18)"] -.surveille.-> ETL
+    HERMES -.surveille.-> DWH
 ```
 
 Infra réutilisée, pas recréée : VPS + Coolify + n8n déjà en place depuis le
 [Projet 18](https://github.com/valentinratigniet-byte/projet-18-monitoring-energie-rte).
+
+<details>
+<summary><strong>🔍 Voir le schéma détaillé</strong> — sources précises, adaptateurs, staging par domaine, RLS, reverse ETL</summary>
+
+Un couloir par domaine (source → adaptateur → staging), qui converge vers
+l'entrepôt, puis un seul bloc d'exploitation en aval — plutôt qu'un
+maillage de flèches, pour rester lisible malgré le nombre de briques.
+
+```mermaid
+flowchart TD
+    subgraph DOM_V["🛒 Ventes/Commerce"]
+        direction TB
+        V1["AS/400 (DB2 for i)\nexport batch fichier plat"] --> VA["Adaptateur fichier plat"] --> VS["stg_ventes"]
+    end
+
+    subgraph DOM_F["💶 Finance/Compta"]
+        direction TB
+        F1["SQL Server"] --> FA1["Adaptateur SQL Server"] --> FS["stg_finance"]
+        F2["CSV relevés bancaires"] --> FA2["Adaptateur CSV"] --> FS
+    end
+
+    subgraph DOM_M["📣 Marketing/Activité"]
+        direction TB
+        M1["MySQL"] --> MA1["Adaptateur MySQL"] --> MS["stg_marketing"]
+        M2["Flux JSON événementiel"] --> MA2["Adaptateur JSON"] --> MS
+        M3["API SaaS\nOAuth2 · webhook + polling"] --> MA3["Adaptateur API REST paginée"] --> MS
+    end
+
+    VS & FS & MS --> DWH["Entrepôt — modèle constellation\ndimensions partagées + faits multiples"]
+
+    subgraph EXPLOIT["Exploitation"]
+        direction TB
+        RLS["RLS multi-rôles\nRH / Finance / Direction / métier"] --> BI["Power BI + Metabase"]
+        ANALYSE["Analyse transverse\ncampagne → ventes → écart budgétaire"] --> BI
+        FIL["Filiation (lignage)"]
+    end
+
+    DWH --> RLS
+    DWH --> ANALYSE
+    DWH --> FIL
+    DWH -.segment calculé.-> REV["Reverse ETL"] -.-> M3
+
+    DOC["decisions.md par domaine\nIdentification → Exploitation"] -.documente.-> DOM_V & DOM_F & DOM_M
+    DOC -.documente.-> DWH
+    DOC -.enrichit.-> FIL
+
+    HERMES["Hermès Agent"] -.surveille interne fraîcheur/dbt/RLS/bloat.-> DOM_V & DOM_F & DOM_M
+    HERMES -.-> DWH
+    HERMES -.surveille externe quota/panne SaaS.-> M3
+```
+
+</details>
 
 ## 🚀 Phasage (par domaine, pas par couche technique)
 
