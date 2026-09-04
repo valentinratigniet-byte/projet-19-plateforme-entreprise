@@ -183,8 +183,18 @@ projet-19-plateforme-entreprise/
 ├── airflow/                    <- DAG dbt (raw -> snapshots -> staging -> marts -> tests -> slim CI)
 ├── entrepot/                  <- dictionnaire de données généré, schéma `raw` (brut) + constellation (net)
 ├── hermes-agent/               <- config/déploiement Hermès Agent
-└── docs/                       <- documentation transverse, housekeeping
+└── docs/                       <- guide-realisation.md, pieges-*.md, housekeeping
 ```
+
+**`docs/guide-realisation.md` et `docs/pieges-*.md`** — écrits **au fil de
+l'implémentation réelle**, pas rédigés à l'avance : un guide de
+reproduction complet du projet étape par étape (infra → domaines →
+consolidation → Filiation), et des fichiers pièges (un par grande zone),
+même format déjà éprouvé au
+[Projet 18](https://github.com/valentinratigniet-byte/projet-18-monitoring-energie-rte)
+(`pieges-api-rte.md`, `pieges-infra.md`) : problème réel rencontré → cause
+→ solution → ce qu'il faut retenir. Rien d'inventé à l'avance — c'est ce
+qui rend le projet transmissible, pas seulement montré.
 
 **Deux couches dans l'entrepôt (bronze/silver-gold)** — une vraie copie
 des bases de production, en deux versions :
