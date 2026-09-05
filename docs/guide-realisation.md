@@ -379,8 +379,44 @@ ingérée.
 **51/51 tests dbt du projet entier passent** (24 modèles, 3 snapshots,
 1 seed, 12 sources).
 
+## Phase 6 — Housekeeping transverse
+
+**Script maison** (`docs/housekeeping/script_maison.py`) — index
+inutilisés + bloat/fragmentation, sur les **3 vraies bases** du projet
+(Postgres/entrepôt, SQL Server, MySQL). L'AS/400 n'a pas de base à
+auditer (simulé en fichiers plats, pas de connexion live), exclu pour
+cette raison structurelle, pas un oubli.
+
+**2 bugs de faux positifs trouvés et corrigés avant de publier un
+résultat** (mesuré pas inventé, jusqu'au bout) :
+1. La détection SQL Server remontait **182 "index inutilisés"** qui
+   étaient en réalité des objets système internes (`sys.*`,
+   `plan_persist_*`, `sqlagent_*`) — la requête ne filtrait pas
+   `is_ms_shipped = 0`. Corrigé, résultat réel : 0 index métier inutilisé.
+2. La détection Postgres remontait **12 clés primaires** comme
+   "candidates à la suppression" — une PK sert à l'unicité, `idx_scan=0`
+   dessus ne veut rien dire de mal. Corrigé en excluant les PK via
+   `pg_index.indisprimary`, résultat réel : 0.
+
+**Trouvailles réelles conservées** : `raw._fichiers_ingeres` (table
+manifeste d'idempotence) à 36,4 % de lignes mortes (cohérent avec les
+relances répétées pendant les tests) ; `EcrituresComptables` (SQL Server)
+à 11,1 % de fragmentation sur son index de clé primaire.
+
+**pgHero déployé et vérifié** (`docs/housekeeping/docker-compose.yml`,
+port `127.0.0.1:8091`) — connecté à l'entrepôt via `dbt_transform`,
+confirmé en listant les vraies tables du projet sur sa page `/space`
+(pas une capture d'écran, un vrai `curl` qui retourne `dim_client`,
+`fait_ventes`, etc.). A détecté lui-même que `pg_stat_statements` n'est
+pas activé sur cet entrepôt — une vraie limite constatée, pas supposée.
+
+**`docs/housekeeping/comparatif.md`** — pganalyze comparé sur
+documentation (outil payant, décision 0€ du cadrage), pgHero et le
+script maison réellement déployés. Constat : **aucun outil du marché ne
+couvre à lui seul les 3 technologies du projet** — le script maison
+comble le blanc laissé par pganalyze/pgHero sur SQL Server et MySQL.
+
 ## Statut du projet
 
-Phases 1 à 5 terminées et vérifiées. Reste au phasage : Phase 6
-(housekeeping transverse), Phase 7 (Filiation branché), Phase 8
-(optionnelle, Hermès Agent — en standby).
+Phases 1 à 6 terminées et vérifiées. Reste au phasage : Phase 7
+(Filiation branché), Phase 8 (optionnelle, Hermès Agent — en standby).

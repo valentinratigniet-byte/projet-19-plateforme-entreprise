@@ -1,6 +1,6 @@
 # Projet 19 — Plateforme data d'entreprise multi-domaines
 
-> **🚧 En construction — Phases 1 à 5 terminées (infra, les 3 domaines, consolidation + analyse transverse), Phase 6 (housekeeping) à venir.** Cadrage complet dans
+> **🚧 En construction — Phases 1 à 6 terminées (infra, les 3 domaines, consolidation + analyse transverse, housekeeping), Phase 7 (Filiation) à venir.** Cadrage complet dans
 > l'issue [valentinratigniet-byte/valentinratigniet-byte#2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
 > (architecture, intérêt par poste cible, doctrine, phasage) — source de
 > vérité, à lire en premier. Ce README sera réécrit au fil de
@@ -150,7 +150,7 @@ flowchart TD
 3. ✅ Domaine 2 — Finance/Compta — **terminé le 2026-09-05**, cf. [`domaines/finance-compta/`](domaines/finance-compta/)
 4. ✅ Domaine 3 — Marketing/Activité — **terminé le 2026-09-05**, cf. [`domaines/marketing-activite/`](domaines/marketing-activite/)
 5. ✅ Consolidation constellation + dictionnaire global + connectique multi-domaines + **analyse transverse** (`docs/analyse-transverse.md`, livrable obligatoire) — **terminée le 2026-09-05**
-6. Housekeeping transverse (index/bloat sur les 3 sources + l'entrepôt)
+6. ✅ Housekeeping transverse (index/bloat sur les 3 sources + l'entrepôt) — **terminée le 2026-09-05**
 7. Filiation branché
 8. **(Optionnelle) Hermès Agent** — en standby, ajoutée seulement si le
    reste du projet est solide et que ça vaut le temps investi. Surveiller
@@ -373,16 +373,28 @@ d'architecture plutôt qu'une conclusion forcée. Dictionnaire global
 généré via `dbt docs generate` (vérifié). dbt **51/51 tests** sur le
 projet entier.
 
-**Les 3 domaines et la consolidation sont maintenant terminés.** Détail
-complet de la construction, y compris tous les bugs rencontrés et
-corrigés (idempotence, RLS qui disparaît à chaque `dbt run`, casse des
-identifiants, événements non corrélés entre simulateurs, `GRANT` table
-qui neutralise un `REVOKE` colonne, mojibake MySQL, seed qui visait le
-mauvais schéma...), dans
+**Phase 6 (housekeeping transverse) — terminée.** Script maison
+(index inutilisés + bloat) sur les **3 vraies bases** du projet
+(Postgres, SQL Server, MySQL — l'AS/400 simulé n'a pas de base à
+auditer) + **pgHero réellement déployé et vérifié** (liste les vraies
+tables du projet). **2 bugs de faux positifs corrigés avant de publier un
+résultat** : 182 "index inutilisés" SQL Server qui étaient en fait des
+objets système internes, et des clés primaires Postgres à tort
+signalées "à supprimer". [`docs/housekeeping/comparatif.md`](docs/housekeeping/comparatif.md) —
+constat : aucun outil du marché (pganalyze, pgHero) ne couvre à lui seul
+les 3 technologies réellement utilisées dans ce projet.
+
+**Les 3 domaines, la consolidation et le housekeeping sont maintenant
+terminés.** Détail complet de la construction, y compris tous les bugs
+rencontrés et corrigés (idempotence, RLS qui disparaît à chaque
+`dbt run`, casse des identifiants, événements non corrélés entre
+simulateurs, `GRANT` table qui neutralise un `REVOKE` colonne, mojibake
+MySQL, seed qui visait le mauvais schéma, faux positifs de housekeeping
+non filtrés...), dans
 [`docs/guide-realisation.md`](docs/guide-realisation.md). Voir
 [l'issue #2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
-pour le détail complet de chaque brique. Prochaine étape : Phase 6
-(housekeeping transverse).
+pour le détail complet de chaque brique. Prochaine étape : Phase 7
+(Filiation branché).
 
 ---
 
