@@ -1,6 +1,6 @@
 # Projet 19 — Plateforme data d'entreprise multi-domaines
 
-> **🚧 En construction — Phases 1 à 6 terminées (infra, les 3 domaines, consolidation + analyse transverse, housekeeping), Phase 7 (Filiation) à venir.** Cadrage complet dans
+> **🚧 En construction — Phases 1 à 7 terminées (infra, les 3 domaines, consolidation + analyse transverse, housekeeping, Filiation branché). Phase 8 (Hermès Agent) optionnelle, en standby.** Cadrage complet dans
 > l'issue [valentinratigniet-byte/valentinratigniet-byte#2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
 > (architecture, intérêt par poste cible, doctrine, phasage) — source de
 > vérité, à lire en premier. Ce README sera réécrit au fil de
@@ -384,17 +384,31 @@ signalées "à supprimer". [`docs/housekeeping/comparatif.md`](docs/housekeeping
 constat : aucun outil du marché (pganalyze, pgHero) ne couvre à lui seul
 les 3 technologies réellement utilisées dans ce projet.
 
-**Les 3 domaines, la consolidation et le housekeeping sont maintenant
-terminés.** Détail complet de la construction, y compris tous les bugs
-rencontrés et corrigés (idempotence, RLS qui disparaît à chaque
-`dbt run`, casse des identifiants, événements non corrélés entre
+**Phase 7 (Filiation branché) — terminée.** Intégration additive dans
+[projet-14-filiation](https://github.com/valentinratigniet-byte/projet-14-filiation)
+via `scan_database.py --merge` (jamais `extract_filiation.py --target`,
+destructif — leçon du Projet 18) sur l'entrepôt réel, schémas
+`raw`/`staging`/`marts` : **38 tables/vues scannées, 137 nœuds réels au
+total dans l'outil** (7 systèmes désormais suivis). Connexion à
+l'entrepôt via tunnel SSH éphémère (le port Postgres n'est exposé qu'en
+`127.0.0.1` sur le VPS, jamais sur Internet) — cohérent avec la doctrine
+d'accès minimal du projet. **Pas de refresh quotidien automatisé ici**
+(contrairement au Projet 18/Supabase, accessible publiquement) : exposer
+l'entrepôt à Internet pour qu'un runner GitHub Actions puisse le
+scanner contredirait la doctrine RLS/accès minimal appliquée partout
+ailleurs dans ce projet — un choix de sécurité assumé, pas un oubli.
+
+**Les 3 domaines, la consolidation, le housekeeping et Filiation sont
+maintenant terminés.** Détail complet de la construction, y compris
+tous les bugs rencontrés et corrigés (idempotence, RLS qui disparaît à
+chaque `dbt run`, casse des identifiants, événements non corrélés entre
 simulateurs, `GRANT` table qui neutralise un `REVOKE` colonne, mojibake
 MySQL, seed qui visait le mauvais schéma, faux positifs de housekeeping
 non filtrés...), dans
 [`docs/guide-realisation.md`](docs/guide-realisation.md). Voir
 [l'issue #2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
-pour le détail complet de chaque brique. Prochaine étape : Phase 7
-(Filiation branché).
+pour le détail complet de chaque brique. Il ne reste que la Phase 8
+(optionnelle, Hermès Agent) — en standby.
 
 ---
 

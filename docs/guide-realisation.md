@@ -416,7 +416,60 @@ script maison réellement déployés. Constat : **aucun outil du marché ne
 couvre à lui seul les 3 technologies du projet** — le script maison
 comble le blanc laissé par pganalyze/pgHero sur SQL Server et MySQL.
 
+## Phase 7 — Filiation branché
+
+Intégration additive du Projet 19 dans l'outil
+[Filiation](https://github.com/valentinratigniet-byte/projet-14-filiation),
+même outil que pour le Projet 18.
+
+**Outil utilisé : `scan_database.py --merge`, jamais
+`extract_filiation.py --target`.** Ce dernier est une opération de
+REMPLACEMENT destructive, pensée pour rafraîchir dans le temps les
+données d'UN SEUL projet dbt déjà suivi — l'utiliser pour ajouter un
+DEUXIÈME système indépendant avait déjà effacé 4248 nœuds (80 → 5) lors
+d'un incident passé sur ce même outil. `scan_database.py --merge` est au
+contraire additif par construction : il introspecte une base quelconque
+via SQLAlchemy (lecture seule, SELECT/introspection uniquement) et
+fusionne avec les nœuds réels déjà présents au lieu de tout remplacer,
+en préfixant les ids par système pour éviter toute collision.
+
+**Connexion.** L'entrepôt `projet19-postgres` n'écoute qu'en
+`127.0.0.1:5440` sur le VPS (jamais exposé sur Internet, cohérent avec
+la doctrine d'accès minimal appliquée à toutes les bases du projet).
+Comme pour toutes les actions distantes de ce projet, la connexion
+s'est faite via un tunnel SSH éphémère (script Python `paramiko` jetable,
+supprimé immédiatement après usage) plutôt que d'ouvrir le port
+publiquement pour l'occasion.
+
+**Résultat.** 38 tables/vues scannées sur les schémas `raw`/`staging`/
+`marts`, fusionnées avec les 99 nœuds déjà réels dans l'outil (6
+systèmes précédents dont le Projet 18) → **137 nœuds réels au total, 7
+systèmes**. Vérifié : le label `"Projet 19 - Plateforme entreprise"` est
+bien présent dans `index.html`, et aucun identifiant/mot de passe n'a
+fuité dans le rendu (grep sur la chaîne de connexion utilisée — 0
+occurrence), conforme à la garantie de l'outil ("les identifiants ne
+sont jamais écrits dans le HTML").
+
+**Rebase avant push.** Le dépôt Filiation reçoit aussi un refresh
+quotidien automatisé du Projet 18 (CI, 6h UTC, `refresh-eco2mix.yml`) —
+deux commits de ce refresh étaient arrivés sur `origin/main` entre le
+scan et le push. Plutôt que de résoudre un conflit à la main sur un
+`index.html` généré de ~55 000 lignes, `git reset --hard origin/main`
+puis re-scan à l'identique par-dessus (le scan est déterministe et
+reproductible, aucun travail réel perdu) — résultat identique (38
+tables, 137 nœuds), poussé proprement.
+
+**Pas de refresh quotidien automatisé pour ce système**, à la
+différence du Projet 18. Le refresh CI du Projet 18 fonctionne parce que
+Supabase est un endpoint public (accessible depuis un runner GitHub
+Actions). L'entrepôt du Projet 19 est volontairement non exposé sur
+Internet — l'exposer publiquement pour permettre un scan automatisé
+quotidien contredirait la doctrine RLS/accès minimal appliquée
+partout ailleurs dans ce projet. Décision assumée, pas un oubli : le
+scan restera ponctuel, relancé manuellement (via le même tunnel SSH) si
+le schéma évolue significativement.
+
 ## Statut du projet
 
-Phases 1 à 6 terminées et vérifiées. Reste au phasage : Phase 7
-(Filiation branché), Phase 8 (optionnelle, Hermès Agent — en standby).
+Phases 1 à 7 terminées et vérifiées. Il ne reste que la Phase 8
+(optionnelle, Hermès Agent — en standby).
