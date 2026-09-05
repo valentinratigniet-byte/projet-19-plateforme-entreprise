@@ -4,3 +4,4 @@ pymssql==2.3.2
 Faker==30.8.2
 PyMySQL==1.1.1
 cryptography==43.0.3
+requests==2.32.3

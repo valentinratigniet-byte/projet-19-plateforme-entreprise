@@ -1,0 +1,13 @@
+services:
+  saas-mock:
+    build: .
+    container_name: projet19-saas-mock
+    environment:
+      SAAS_CLIENT_ID: ${SAAS_CLIENT_ID}
+      SAAS_CLIENT_SECRET: ${SAAS_CLIENT_SECRET}
+      EVENEMENTS_PATH: /data/_evenements_communs_marketing.json
+    volumes:
+      - ../source/exports/_evenements_communs_marketing.json:/data/_evenements_communs_marketing.json:ro
+    ports:
+      - "127.0.0.1:5000:5000"
+    restart: unless-stopped
