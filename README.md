@@ -1,6 +1,6 @@
 # Projet 19 — Plateforme data d'entreprise multi-domaines
 
-> **🚧 En construction — Phases 1 à 4 terminées (infra + les 3 domaines), Phase 5 (consolidation + analyse transverse) à venir.** Cadrage complet dans
+> **🚧 En construction — Phases 1 à 5 terminées (infra, les 3 domaines, consolidation + analyse transverse), Phase 6 (housekeeping) à venir.** Cadrage complet dans
 > l'issue [valentinratigniet-byte/valentinratigniet-byte#2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
 > (architecture, intérêt par poste cible, doctrine, phasage) — source de
 > vérité, à lire en premier. Ce README sera réécrit au fil de
@@ -149,7 +149,7 @@ flowchart TD
 2. ✅ Domaine 1 — Ventes/Commerce, bout en bout (source sale → nettoyage → staging → fait → RLS → doc) — **terminé le 2026-09-05**, cf. [`domaines/ventes-commerce/`](domaines/ventes-commerce/)
 3. ✅ Domaine 2 — Finance/Compta — **terminé le 2026-09-05**, cf. [`domaines/finance-compta/`](domaines/finance-compta/)
 4. ✅ Domaine 3 — Marketing/Activité — **terminé le 2026-09-05**, cf. [`domaines/marketing-activite/`](domaines/marketing-activite/)
-5. Consolidation constellation + dictionnaire global + connectique multi-domaines + **analyse transverse** (`docs/analyse-transverse.md`, livrable obligatoire)
+5. ✅ Consolidation constellation + dictionnaire global + connectique multi-domaines + **analyse transverse** (`docs/analyse-transverse.md`, livrable obligatoire) — **terminée le 2026-09-05**
 6. Housekeeping transverse (index/bloat sur les 3 sources + l'entrepôt)
 7. Filiation branché
 8. **(Optionnelle) Hermès Agent** — en standby, ajoutée seulement si le
@@ -361,15 +361,28 @@ SaaS et MySQL, vérifié). dbt **45/45 tests** (projet entier), RLS
 **9/9 cas vérifiés**. Doc complète dans
 [`domaines/marketing-activite/`](domaines/marketing-activite/).
 
-**Les 3 domaines du projet sont maintenant terminés.** Détail complet de
-la construction, y compris tous les bugs rencontrés et corrigés
-(idempotence, RLS qui disparaît à chaque `dbt run`, casse des
+**Phase 5 (consolidation + analyse transverse) — terminée.** Modèle
+**constellation réel** : `marts.dim_date` partagée entre les 3 domaines.
+[`docs/analyse-transverse.md`](docs/analyse-transverse.md) — le livrable
+obligatoire du cadrage — applique l'écart Prix/Volume (méthode Projet 15)
+sur les vraies données Ventes, **puis rapporte honnêtement l'absence de
+corrélation marketing → ventes** : aucun signal trouvé, et surtout
+**pourquoi** — Ventes (clients AS/400 B2B) et Marketing (contacts CRM)
+n'ont aucune entité commune dans ce modèle, une vraie découverte
+d'architecture plutôt qu'une conclusion forcée. Dictionnaire global
+généré via `dbt docs generate` (vérifié). dbt **51/51 tests** sur le
+projet entier.
+
+**Les 3 domaines et la consolidation sont maintenant terminés.** Détail
+complet de la construction, y compris tous les bugs rencontrés et
+corrigés (idempotence, RLS qui disparaît à chaque `dbt run`, casse des
 identifiants, événements non corrélés entre simulateurs, `GRANT` table
-qui neutralise un `REVOKE` colonne, mojibake MySQL...), dans
+qui neutralise un `REVOKE` colonne, mojibake MySQL, seed qui visait le
+mauvais schéma...), dans
 [`docs/guide-realisation.md`](docs/guide-realisation.md). Voir
 [l'issue #2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
-pour le détail complet de chaque brique. Prochaine étape : Phase 5
-(consolidation constellation + analyse transverse).
+pour le détail complet de chaque brique. Prochaine étape : Phase 6
+(housekeeping transverse).
 
 ---
 
