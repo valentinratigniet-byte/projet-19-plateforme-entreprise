@@ -1,0 +1,39 @@
+{
+  "name": "Projet 19 - Ingestion Finance/Compta",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 3 * * *" }
+          ]
+        }
+      },
+      "id": "trigger-quotidien",
+      "name": "Tous les jours a 3h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "command": "bash /opt/projet19/domaines/finance-compta/run_ingestion.sh"
+      },
+      "id": "ssh-ingestion",
+      "name": "Ingestion SQL Server + CSV + Factur-X -> raw.finance_*",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": {
+        "sshPassword": { "id": "A_CONFIGURER", "name": "VPS Projet 19" }
+      }
+    }
+  ],
+  "connections": {
+    "Tous les jours a 3h": {
+      "main": [[{ "node": "Ingestion SQL Server + CSV + Factur-X -> raw.finance_*", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

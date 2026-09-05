@@ -205,6 +205,68 @@ configuration de la credential SSH restent une étape manuelle** — comme
 pour le déploiement initial de n8n au Projet 18, pas automatisable sans
 clé API n8n déjà en main.
 
-**Reste réellement ouvert** : `decisions.md`/`regles-transformation.md`/
-`avant.md`/`apres.md` (documentation à écrire), import manuel du workflow
-n8n.
+**Reste réellement ouvert (Phase 2)** : import manuel du workflow n8n.
+
+## Phase 3 — Domaine Finance/Compta
+
+**Sources déployées et vérifiées** :
+- **SQL Server** (édition Developer forcée, `MSSQL_PID=Developer`, 0€) —
+  déployé sur le VPS, healthy. Fournisseurs + écritures comptables peuplés
+  directement en base (pas un fichier à ingérer, l'ERP EST la source).
+- **CSV relevé bancaire** — export mensuel, délimiteur `;` (convention
+  française), montants en texte format FR.
+- **Factur-X** — XML structuré (EN16931-inspiré) pour les fournisseurs
+  migrés + texte OCR-like dégradé pour les non-migrés, taux de migration
+  croissant 20%→65% sur 8 mois simulés.
+
+**Bug de conception majeur trouvé et corrigé — événements non corrélés** :
+la première version générait les montants des écritures SQL Server et des
+factures Factur-X de façon **totalement indépendante** (deux tirages
+aléatoires séparés) — techniquement deux sources différentes, mais censées
+représenter la MÊME réalité économique (une facture reçue = une écriture
+comptable). Résultat : un taux de rapprochement quasi nul (moins de 2%),
+qui n'était pas une vraie découverte mais un artefact du simulateur.
+Corrigé avec `generer_evenements.py` — une liste canonique d'événements
+partagée par les deux simulateurs (même fournisseur, même montant), avec
+une couverture volontairement imparfaite (90% ont écriture+facture, 5%
+écriture seule, 5% facture seule) pour que le taux de rapprochement mesure
+un vrai phénomène plutôt qu'un bug.
+
+**Adaptateurs d'ingestion** : `ingestion/adaptateurs/{sqlserver,csv_file,facturx}.py`
+(génériques, réutilisables) + `domaines/finance-compta/ingestion.py`
+(orchestration : fournisseurs/écritures = `remplacer_table` car l'ERP
+représente l'état courant complet, pas un export ; relevé bancaire et
+factures reçues = `ajouter_lignes`, idempotent). Vérifié : 80 fournisseurs,
+866 écritures, 553 lignes de relevé, 854 factures reçues — idempotence
+confirmée sur relance.
+
+**dbt — snapshot + staging + marts** (exécuté via l'image officielle
+dbt-postgres) : snapshot SCD2 sur les fournisseurs, 4 modèles staging avec
+règles de nettoyage réelles (montants FR/US → numeric, SIREN normalisé,
+doublons de saisie comptable **dédoublonnés** — contrairement aux
+commandes Ventes, ici ce sont de vrais doublons de saisie, pas des
+enregistrements distincts), 3 marts (`dim_fournisseur`, `fait_ecritures`,
+`fait_rapprochement_factures`). **26/26 tests dbt passent.**
+
+**Trouvaille analytique réelle — rapprochement facture/écriture** : après
+correction du bug de corrélation, **91% des factures Factur-X (structurées)
+se rapprochent automatiquement** d'une écriture comptable, contre
+**seulement 44% des factures non structurées** (SIREN/montant absents ou
+illisibles à l'OCR). Un argument chiffré concret en faveur de la réforme
+de facturation électronique, mesuré sur la donnée simulée elle-même.
+
+**RLS multi-rôles + sécurité colonne — nouveauté par rapport à Ventes** :
+en plus de la RLS ligne (`role_rh`=0, `role_finance`/`role_direction`=tout),
+**restriction au niveau colonne** sur `dim_fournisseur.iban` (donnée
+bancaire sensible) : `role_direction` ne peut pas la lire, `role_finance`
+oui. **Bug Postgres réel rencontré** : un `GRANT SELECT` global sur la
+table rend inopérant un `REVOKE SELECT (colonne)` posé après — le grant
+table prime toujours sur le revoke colonne (vérifié via
+`has_column_privilege`, le revoke n'avait aucun effet mesurable). Corrigé
+en n'accordant **jamais** le SELECT global à `role_direction` : uniquement
+les colonnes explicitement listées, IBAN exclue. **8/8 cas vérifiés** par
+`SET ROLE` + tentative de lecture réelle de la colonne (pas juste les
+GRANT déclarés).
+
+**Reste réellement ouvert (Phase 3)** : workflow n8n, documentation du
+domaine (`decisions.md`/`regles-transformation.md`/`avant.md`/`apres.md`).

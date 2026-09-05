@@ -1,0 +1,15 @@
+#!/bin/bash
+# Copier en run_ingestion.sh sur le serveur (jamais commité), remplir les
+# mots de passe reels. Appele par le workflow n8n (SSH node).
+set -euo pipefail
+
+docker run --rm \
+  --network entrepot_default \
+  -v /opt/projet19/domaines/finance-compta:/domain \
+  -e PYTHONPATH=/app \
+  -e PGHOST=projet19-postgres -e PGPORT=5432 -e PGDATABASE=projet19 \
+  -e PGUSER=ingestion -e PGPASSWORD=change-me \
+  -e MSSQL_HOST=projet19-sqlserver -e MSSQL_PORT=1433 \
+  -e MSSQL_SA_PASSWORD=change-me \
+  -w /domain \
+  projet19-ingestion python ingestion.py
