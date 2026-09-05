@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: ecart_budget_ventes
+    description: "Décomposition Prix/Volume (méthode Projet 15) sur les vraies données Ventes de ce projet vs un budget hypothèse labellisée (seed)."
+    columns:
+      - name: mois
+        tests: [not_null, unique]
+
+  - name: synthese_mensuelle_transverse
+    description: "Mise en regard mensuelle des 3 domaines (marketing/ventes/finance) -- le fil narratif du cadrage rendu concret."
+    columns:
+      - name: mois
+        tests: [not_null, unique]

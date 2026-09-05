@@ -23,3 +23,11 @@ models:
     marts:
       +materialized: table
       +schema: marts
+
+seeds:
+  projet19_plateforme_entreprise:
+    # dbt_transform ne possede pas le schema raw (role ingestion) --
+    # les seeds (hypotheses labellisees, ex. budget) vivent a cote des
+    # marts qui les consomment, pas dans raw (elles ne sont pas une
+    # source ingeree).
+    +schema: marts

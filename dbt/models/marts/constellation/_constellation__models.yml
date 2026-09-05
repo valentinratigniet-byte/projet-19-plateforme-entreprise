@@ -1,0 +1,8 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: "Dimension calendaire partagée entre les 3 domaines (modèle constellation) -- couvre toute la période simulée (2026-01 à 2026-08) + marge."
+    columns:
+      - name: date_jour
+        tests: [not_null, unique]
