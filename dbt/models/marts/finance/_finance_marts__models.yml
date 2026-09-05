@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: dim_fournisseur
+    description: "Fournisseurs -- IBAN masqué pour role_direction (colonne sensible, sécurité au niveau colonne + RLS)."
+    columns:
+      - name: fournisseur_id
+        tests: [not_null, unique]
+
+  - name: fait_ecritures
+    description: "Écritures comptables, une ligne par écriture (dédoublonnée)."
+    columns:
+      - name: ecriture_id
+        tests: [not_null, unique]
+
+  - name: fait_rapprochement_factures
+    description: "Rapprochement factures reçues <-> écritures comptables, par SIREN + montant (pas par numéro, numérotations non partagées entre sources)."
+    columns:
+      - name: rapprochee
+        tests:
+          - accepted_values:
+              values: [true, false]

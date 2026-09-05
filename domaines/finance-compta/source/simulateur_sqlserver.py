@@ -1,27 +1,31 @@
 """Simule un ERP comptable sur SQL Server -- pas un fichier a generer,
 directement les tables de la source de production (comme un vrai ETL
-lirait une vraie base SQL Server en place). Genere fournisseurs +
-ecritures comptables sur 8 mois simules, avec des defauts differents de
-ceux du domaine Ventes/Commerce (pas 2x le meme type de "sale") :
+lirait une vraie base SQL Server en place).
 
-  - SIREN parfois absent, mal forme, ou avec espaces
-  - montants stockes en texte (varchar), format FR (virgule + espace
-    insecable) sur certaines lignes -- import legacy mal configure
-  - NumeroFacture avec un format qui NE correspond PAS exactement au
-    format utilise cote Factur-X (rapprochement a construire, pas donne)
-  - quelques ecritures en double (erreur de saisie comptable reelle)
+Consomme les evenements canoniques de `generer_evenements.py` (montants
+reels partages avec Factur-X, pour que le rapprochement facture/ecriture
+mesure un vrai taux de couverture) -- lancer generer_evenements.py avant
+ce script. Defauts propres a CE canal, differents de ceux du domaine
+Ventes/Commerce :
+
+  - montants stockes en texte, format FR (virgule + espace) sur ~15% des
+    lignes -- import legacy mal configure
+  - ~2% des ecritures avec un FournisseurID orphelin (saisie manuelle
+    erronee, pas dans le meme referentiel que les evenements)
+  - ~1.5% de doublons de saisie comptable exacts (double-clic reel)
 """
 
 from __future__ import annotations
 
+import json
 import os
 import random
-from datetime import date, timedelta
+from datetime import date
+from pathlib import Path
 
 import pymssql
-from faker import Faker
 
-fake = Faker("fr_FR")
+EVENEMENTS_PATH = Path(__file__).parent / "exports" / "_evenements_communs.json"
 
 
 def connecter():
@@ -37,10 +41,7 @@ def connecter():
 
 def creer_schema(conn):
     with conn.cursor() as cur:
-        cur.execute(
-            "IF DB_ID('finance_compta') IS NULL CREATE DATABASE finance_compta"
-        )
-    conn.commit() if hasattr(conn, "commit") else None
+        cur.execute("IF DB_ID('finance_compta') IS NULL CREATE DATABASE finance_compta")
 
 
 def creer_tables(conn):
@@ -75,45 +76,32 @@ def creer_tables(conn):
         )
 
 
-def generer_fournisseurs(n: int, rng: random.Random) -> list[dict]:
-    fournisseurs = []
-    for i in range(1, n + 1):
-        # ~10% de SIREN mal formes ou absents -- defaut reel a rattraper en nettoyage
-        r = rng.random()
-        if r < 0.05:
-            siren = None
-        elif r < 0.10:
-            siren = f"{rng.randint(100, 999)} {rng.randint(100, 999)} {rng.randint(100, 999)}"  # avec espaces
-        else:
-            siren = str(rng.randint(100000000, 999999999))
-
-        fournisseurs.append(
-            {
-                "id": i,
-                "raison_sociale": fake.company(),
-                "siren": siren,
-                "iban": fake.iban(),
-            }
+def inserer_fournisseurs(conn, fournisseurs: list[dict]) -> None:
+    with conn.cursor() as cur:
+        cur.execute("USE finance_compta")
+        cur.executemany(
+            "INSERT INTO dbo.Fournisseurs (FournisseurID, RaisonSociale, SIREN, IBAN) VALUES (%d, %s, %s, %s)",
+            [(f["id"], f["raison_sociale"], f["siren"], None) for f in fournisseurs],
         )
-    return fournisseurs
+        # IBAN genere separement (pas dans les evenements communs, pas pertinent au rapprochement)
+        from faker import Faker
+
+        fake = Faker("fr_FR")
+        Faker.seed(19)
+        ibans = [fake.iban() for _ in fournisseurs]
+        cur.executemany(
+            "UPDATE dbo.Fournisseurs SET IBAN = %s WHERE FournisseurID = %d",
+            [(iban, f["id"]) for iban, f in zip(ibans, fournisseurs)],
+        )
 
 
-def generer_ecritures(
-    fournisseurs: list[dict], annee_mois: str, rng: random.Random, n: int
-) -> list[dict]:
-    annee, mois = int(annee_mois[:4]), int(annee_mois[4:])
+def construire_ecritures(evenements: list[dict], rng: random.Random) -> list[dict]:
     ecritures = []
-    for i in range(n):
-        f = rng.choice(fournisseurs)
-        jour = rng.randint(1, 28)
-        d = date(annee, mois, jour)
+    for e in evenements:
+        if not e["a_ecriture"]:
+            continue
 
-        montant_ht = round(rng.uniform(80, 15000), 2)
-        taux_tva = rng.choice([20.0, 10.0, 5.5])
-        montant_ttc = round(montant_ht * (1 + taux_tva / 100), 2)
-
-        # ~15% des montants stockes en texte format FR (virgule) --
-        # import legacy incoherent, pas systematique
+        montant_ht, montant_ttc = e["montant_ht"], e["montant_ttc"]
         if rng.random() < 0.15:
             montant_ht_str = f"{montant_ht:,.2f}".replace(",", " ").replace(".", ",")
             montant_ttc_str = f"{montant_ttc:,.2f}".replace(",", " ").replace(".", ",")
@@ -121,15 +109,16 @@ def generer_ecritures(
             montant_ht_str = f"{montant_ht:.2f}"
             montant_ttc_str = f"{montant_ttc:.2f}"
 
-        numero_facture = f"FA{annee_mois}{i:04d}"
+        fournisseur_id = e["fournisseur_id"] if rng.random() > 0.02 else None
+        numero_facture = f"FA{e['annee_mois']}{e['index']:04d}"
 
         ecritures.append(
             {
-                "fournisseur_id": f["id"] if rng.random() > 0.02 else None,  # ~2% orpheline
+                "fournisseur_id": fournisseur_id,
                 "numero_facture": numero_facture,
-                "date_ecriture": d,
+                "date_ecriture": date(e["annee"], e["mois"], e["jour"]),
                 "montant_ht": montant_ht_str,
-                "taux_tva": str(taux_tva),
+                "taux_tva": "20.0",
                 "montant_ttc": montant_ttc_str,
                 "compte_comptable": rng.choice(["401100", "401200", "401300"]),
                 "statut_paiement": rng.choices(
@@ -137,22 +126,9 @@ def generer_ecritures(
                 )[0],
             }
         )
-
-        # ~1.5% de double-saisie reelle (erreur comptable)
         if rng.random() < 0.015:
             ecritures.append(dict(ecritures[-1]))
-
     return ecritures
-
-
-def inserer_fournisseurs(conn, fournisseurs: list[dict]) -> None:
-    with conn.cursor() as cur:
-        cur.execute("USE finance_compta")
-        cur.executemany(
-            "INSERT INTO dbo.Fournisseurs (FournisseurID, RaisonSociale, SIREN, IBAN) "
-            "VALUES (%d, %s, %s, %s)",
-            [(f["id"], f["raison_sociale"], f["siren"], f["iban"]) for f in fournisseurs],
-        )
 
 
 def inserer_ecritures(conn, ecritures: list[dict]) -> None:
@@ -164,14 +140,9 @@ def inserer_ecritures(conn, ecritures: list[dict]) -> None:
             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
             [
                 (
-                    e["fournisseur_id"],
-                    e["numero_facture"],
-                    e["date_ecriture"],
-                    e["montant_ht"],
-                    e["taux_tva"],
-                    e["montant_ttc"],
-                    e["compte_comptable"],
-                    e["statut_paiement"],
+                    e["fournisseur_id"], e["numero_facture"], e["date_ecriture"],
+                    e["montant_ht"], e["taux_tva"], e["montant_ttc"],
+                    e["compte_comptable"], e["statut_paiement"],
                 )
                 for e in ecritures
             ],
@@ -180,26 +151,21 @@ def inserer_ecritures(conn, ecritures: list[dict]) -> None:
 
 def main() -> None:
     rng = random.Random(19)
-    Faker.seed(19)
+
+    with EVENEMENTS_PATH.open(encoding="utf-8") as f:
+        donnees = json.load(f)
+    fournisseurs, evenements = donnees["fournisseurs"], donnees["evenements"]
 
     conn = connecter()
     creer_schema(conn)
     creer_tables(conn)
-
-    fournisseurs = generer_fournisseurs(80, rng)
     inserer_fournisseurs(conn, fournisseurs)
 
-    mois_simules = [f"2026{m:02d}" for m in range(1, 9)]
-    total_ecritures = 0
-    for idx, aaaamm in enumerate(mois_simules):
-        n = 60 + idx * 15
-        ecritures = generer_ecritures(fournisseurs, aaaamm, rng, n)
-        inserer_ecritures(conn, ecritures)
-        total_ecritures += len(ecritures)
-        print(f"{aaaamm}: {len(ecritures)} ecritures")
-
+    ecritures = construire_ecritures(evenements, rng)
+    inserer_ecritures(conn, ecritures)
     conn.close()
-    print(f"Total: {len(fournisseurs)} fournisseurs, {total_ecritures} ecritures")
+
+    print(f"{len(fournisseurs)} fournisseurs, {len(ecritures)} ecritures")
 
 
 def _self_check() -> None:

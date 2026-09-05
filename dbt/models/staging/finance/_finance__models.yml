@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: stg_finance_fournisseurs
+    description: "Fournisseurs SQL Server nettoyés -- SIREN normalisé et validé."
+    columns:
+      - name: fournisseur_id
+        tests: [not_null, unique]
+
+  - name: stg_finance_ecritures
+    description: "Écritures comptables nettoyées -- montants typés, doublons de saisie exacts supprimés, FK partielle flaguée."
+    columns:
+      - name: ecriture_id
+        tests: [not_null, unique]
+      - name: montant_ttc_eur
+        tests: [not_null]
+
+  - name: stg_finance_releve_bancaire
+    description: "Relevé bancaire nettoyé -- montants typés, dates parsées, doublons d'export supprimés."
+    columns:
+      - name: montant_eur
+        tests: [not_null]
+
+  - name: stg_finance_factures_recues
+    description: "Factures fournisseurs reçues (Factur-X + non structuré) nettoyées."
+    columns:
+      - name: canal
+        tests:
+          - accepted_values:
+              values: ["facturx", "non_structure"]

@@ -1,0 +1,14 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: finance_fournisseurs
+        description: "Copie brute des fournisseurs SQL Server (état courant complet, remplacé à chaque run)."
+      - name: finance_ecritures
+        description: "Copie brute des écritures comptables SQL Server (état courant complet, remplacé à chaque run)."
+      - name: finance_releve_bancaire
+        description: "Copie brute des relevés bancaires CSV mensuels (append)."
+      - name: finance_factures_recues
+        description: "Copie brute des factures fournisseurs reçues, Factur-X + non structurées (append, colonne `canal`)."
