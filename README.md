@@ -1,6 +1,6 @@
 # Projet 19 — Plateforme data d'entreprise multi-domaines
 
-> **🚧 En construction — Phase 1 (infra) et Phase 2 (Domaine Ventes/Commerce) terminées, Phase 3 à venir.** Cadrage complet dans
+> **🚧 En construction — Phases 1 à 3 terminées (infra, Ventes/Commerce, Finance/Compta), Phase 4 (Marketing/Activité) à venir.** Cadrage complet dans
 > l'issue [valentinratigniet-byte/valentinratigniet-byte#2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
 > (architecture, intérêt par poste cible, doctrine, phasage) — source de
 > vérité, à lire en premier. Ce README sera réécrit au fil de
@@ -147,7 +147,7 @@ flowchart TD
 
 1. ✅ Infra partagée (VPS/Coolify existant + Airflow)
 2. ✅ Domaine 1 — Ventes/Commerce, bout en bout (source sale → nettoyage → staging → fait → RLS → doc) — **terminé le 2026-09-05**, cf. [`domaines/ventes-commerce/`](domaines/ventes-commerce/)
-3. Domaine 2 — Finance/Compta
+3. ✅ Domaine 2 — Finance/Compta — **terminé le 2026-09-05**, cf. [`domaines/finance-compta/`](domaines/finance-compta/)
 4. Domaine 3 — Marketing/Activité (volume + housekeeping à grande échelle)
 5. Consolidation constellation + dictionnaire global + connectique multi-domaines + **analyse transverse** (`docs/analyse-transverse.md`, livrable obligatoire)
 6. Housekeeping transverse (index/bloat sur les 3 sources + l'entrepôt)
@@ -340,11 +340,22 @@ n8n (export prêt). Doc complète du domaine dans
 [`domaines/ventes-commerce/`](domaines/ventes-commerce/)
 (`avant.md`/`decisions.md`/`regles-transformation.md`/`apres.md`).
 
+**Phase 3 (Domaine Finance/Compta) — terminée.** SQL Server (édition
+Developer) + CSV bancaire + Factur-X (2 canaux), rapprochement
+facture/écriture par SIREN+montant (pas par numéro, non partagé entre
+sources) → **91 % de rapprochement automatique côté Factur-X structuré,
+contre 44 % pour le canal non structuré** — argument chiffré pour la
+migration e-facturation. dbt **26/26 tests**, RLS + **sécurité colonne**
+sur l'IBAN (nouveauté) **8/8 cas vérifiés**. Doc complète dans
+[`domaines/finance-compta/`](domaines/finance-compta/).
+
 Détail complet de la construction, y compris les bugs rencontrés et
 corrigés (idempotence, RLS qui disparaît à chaque `dbt run`, casse des
-identifiants...), dans [`docs/guide-realisation.md`](docs/guide-realisation.md).
-Domaines Finance/Compta et Marketing/Activité : squelette posé, contenu
-réel à venir. Voir [l'issue #2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
+identifiants, événements non corrélés entre simulateurs, `GRANT` table
+qui neutralise un `REVOKE` colonne...), dans
+[`docs/guide-realisation.md`](docs/guide-realisation.md).
+Domaine Marketing/Activité : squelette posé, contenu réel à venir. Voir
+[l'issue #2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
 pour le détail complet de chaque brique.
 
 ---
