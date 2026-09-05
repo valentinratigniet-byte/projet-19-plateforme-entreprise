@@ -1,6 +1,6 @@
 # Projet 19 — Plateforme data d'entreprise multi-domaines
 
-> **🚧 En construction — Phases 1 à 3 terminées (infra, Ventes/Commerce, Finance/Compta), Phase 4 (Marketing/Activité) à venir.** Cadrage complet dans
+> **🚧 En construction — Phases 1 à 4 terminées (infra + les 3 domaines), Phase 5 (consolidation + analyse transverse) à venir.** Cadrage complet dans
 > l'issue [valentinratigniet-byte/valentinratigniet-byte#2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
 > (architecture, intérêt par poste cible, doctrine, phasage) — source de
 > vérité, à lire en premier. Ce README sera réécrit au fil de
@@ -148,7 +148,7 @@ flowchart TD
 1. ✅ Infra partagée (VPS/Coolify existant + Airflow)
 2. ✅ Domaine 1 — Ventes/Commerce, bout en bout (source sale → nettoyage → staging → fait → RLS → doc) — **terminé le 2026-09-05**, cf. [`domaines/ventes-commerce/`](domaines/ventes-commerce/)
 3. ✅ Domaine 2 — Finance/Compta — **terminé le 2026-09-05**, cf. [`domaines/finance-compta/`](domaines/finance-compta/)
-4. Domaine 3 — Marketing/Activité (volume + housekeeping à grande échelle)
+4. ✅ Domaine 3 — Marketing/Activité — **terminé le 2026-09-05**, cf. [`domaines/marketing-activite/`](domaines/marketing-activite/)
 5. Consolidation constellation + dictionnaire global + connectique multi-domaines + **analyse transverse** (`docs/analyse-transverse.md`, livrable obligatoire)
 6. Housekeeping transverse (index/bloat sur les 3 sources + l'entrepôt)
 7. Filiation branché
@@ -349,14 +349,27 @@ migration e-facturation. dbt **26/26 tests**, RLS + **sécurité colonne**
 sur l'IBAN (nouveauté) **8/8 cas vérifiés**. Doc complète dans
 [`domaines/finance-compta/`](domaines/finance-compta/).
 
-Détail complet de la construction, y compris les bugs rencontrés et
-corrigés (idempotence, RLS qui disparaît à chaque `dbt run`, casse des
+**Phase 4 (Domaine Marketing/Activité) — terminée, le plus riche des 3.**
+MySQL + JSON événementiel + **mock d'API SaaS avec 4 mécanismes vérifiés
+réellement** : OAuth2 (refresh de jeton attendu en conditions réelles),
+polling paginé, **webhook push** (réception confirmée côté destinataire),
+**reverse ETL** (segment de 124 contacts engagés calculé dans l'entrepôt
+et confirmé reçu côté SaaS). RLS avec **minimisation d'accès** —
+`role_direction` n'a aucun accès aux données personnelles, seulement à
+l'agrégat `fait_performance_campagnes` (8/8 campagnes cohérentes entre
+SaaS et MySQL, vérifié). dbt **45/45 tests** (projet entier), RLS
+**9/9 cas vérifiés**. Doc complète dans
+[`domaines/marketing-activite/`](domaines/marketing-activite/).
+
+**Les 3 domaines du projet sont maintenant terminés.** Détail complet de
+la construction, y compris tous les bugs rencontrés et corrigés
+(idempotence, RLS qui disparaît à chaque `dbt run`, casse des
 identifiants, événements non corrélés entre simulateurs, `GRANT` table
-qui neutralise un `REVOKE` colonne...), dans
-[`docs/guide-realisation.md`](docs/guide-realisation.md).
-Domaine Marketing/Activité : squelette posé, contenu réel à venir. Voir
+qui neutralise un `REVOKE` colonne, mojibake MySQL...), dans
+[`docs/guide-realisation.md`](docs/guide-realisation.md). Voir
 [l'issue #2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
-pour le détail complet de chaque brique.
+pour le détail complet de chaque brique. Prochaine étape : Phase 5
+(consolidation constellation + analyse transverse).
 
 ---
 

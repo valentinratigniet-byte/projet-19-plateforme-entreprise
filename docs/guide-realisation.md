@@ -268,5 +268,78 @@ les colonnes explicitement listées, IBAN exclue. **8/8 cas vérifiés** par
 `SET ROLE` + tentative de lecture réelle de la colonne (pas juste les
 GRANT déclarés).
 
-**Reste réellement ouvert (Phase 3)** : workflow n8n, documentation du
-domaine (`decisions.md`/`regles-transformation.md`/`avant.md`/`apres.md`).
+**Reste réellement ouvert (Phase 3)** : ~~workflow n8n, documentation du
+domaine~~ — fait dans la foulée (cf. Phase 3 dans le README du domaine).
+
+## Phase 4 — Domaine Marketing/Activité (le plus riche des 3)
+
+**Socle d'événements partagé étendu à un 3e domaine** — même discipline
+que Finance/Compta : `generer_evenements.py` génère contacts/campagnes/
+envois/événements web cohérents entre eux (funnel envoi → ouverture →
+clic → visite réel), consommés par les simulateurs MySQL et JSON.
+
+**Sources déployées et vérifiées** :
+- **MySQL 8** (0€, self-hosted) — contacts/campagnes/envois, avec un
+  défaut MySQL-spécifique original : mojibake réel (bug de charset
+  latin1/utf8mb4 simulé par un vrai aller-retour d'encodage, pas un texte
+  aléatoire).
+- **Flux JSON événementiel** — structure semi-structurée (objet
+  `contexte` imbriqué), aplati à l'ingestion via un nouvel adaptateur
+  générique `json_file.py`.
+- **Mock d'API SaaS** (`saas-mock/`, Flask, conteneurisé) — la brique la
+  plus originale du projet : **4 mécanismes réellement implémentés et
+  vérifiés**, pas simulés en apparence :
+  1. **OAuth2** — jetons courts (30s, volontairement) pour forcer un
+     vrai cycle de refresh ; vérifié en attendant réellement 32
+     secondes puis en confirmant qu'un nouveau jeton différent est
+     acquis automatiquement.
+  2. **Polling paginé** — `/api/campagnes/stats`, 8 campagnes
+     récupérées sur plusieurs pages.
+  3. **Webhook push** — `/webhooks/declencher` fait un vrai appel HTTP
+     sortant ; vérifié avec un récepteur temporaire (conteneur
+     `webhook-echo` sur le réseau partagé) qui confirme la réception
+     (HTTP 200), pas juste que l'appel a été tenté.
+  4. **Reverse ETL** — `/api/segments` reçoit un segment calculé dans
+     l'entrepôt (124 contacts engagés, jamais désabonnés) ; vérifié en
+     relisant `/api/segments` côté SaaS pour confirmer la réception
+     réelle, pas juste un code retour 200.
+
+**Adaptateurs génériques ajoutés** : `mysql.py`, `json_file.py`,
+`api_rest.py` (`ClientOAuth2` — acquisition + refresh, réutilisable pour
+toute future API du même type).
+
+**dbt — snapshot + staging + marts** : snapshot SCD2 contacts, 5 modèles
+staging (email normalisé, mojibake **flagué pas réparé** — une réparation
+SQL à l'aveugle risquerait de fabriquer un texte faux —, statuts FR/EN
+regroupés, typo UTM "emial" corrigée explicitement), 4 marts dont
+`fait_performance_campagnes` qui **recoupe les stats SaaS avec un calcul
+indépendant depuis MySQL** — 8/8 campagnes cohérentes, testé
+(`assert_stats_saas_coherentes_mysql`). **45/45 tests dbt du projet
+entier passent.**
+
+**RLS — minimisation d'accès, pas seulement RLS ligne** : nouveauté par
+rapport à Ventes/Finance, `role_direction` n'a **aucun GRANT** sur
+`dim_contact`/`fait_envois`/`fait_evenements_web` (données personnelles)
+— seulement sur l'agrégat `fait_performance_campagnes`. Un premier essai
+avait oublié le `GRANT` pour `role_rh` sur ces tables (l'accès était
+refusé par absence de privilège plutôt que filtré à 0 ligne par RLS,
+incohérent avec les autres domaines) — corrigé pour rester cohérent :
+`role_rh` a le grant + une policy RLS qui renvoie 0 ligne partout,
+`role_direction` n'a le grant nulle part sauf sur l'agrégat. **9/9 cas
+vérifiés** par `SET ROLE` + tentative de lecture réelle (pas juste les
+GRANT déclarés).
+
+**Reverse ETL vérifié en conditions réelles** : `reverse_etl.py` calcule
+le segment en SQL sur `marts.fait_envois`, l'envoie via `api_rest.py`, et
+relit `/api/segments` côté SaaS pour confirmer que les 124 contacts sont
+bien arrivés — pas une supposition sur le code retour.
+
+**Workflow n8n** — export prêt, avec un webhook trigger en plus du pull
+quotidien (représente le canal "push" du SaaS, cohérent avec le mock).
+
+## Les 3 domaines sont terminés
+
+Ventes/Commerce (Phase 2), Finance/Compta (Phase 3), Marketing/Activité
+(Phase 4) sont tous construits, vérifiés et documentés. Prochaine étape :
+Phase 5 (consolidation constellation + dictionnaire global + analyse
+transverse, livrable obligatoire du cadrage).
