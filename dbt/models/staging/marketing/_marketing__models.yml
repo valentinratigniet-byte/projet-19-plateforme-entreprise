@@ -1,0 +1,33 @@
+version: 2
+
+models:
+  - name: stg_marketing_contacts
+    description: "Contacts MySQL nettoyés -- email normalisé, encodage suspect flagué, doublons flagués."
+    columns:
+      - name: contact_id
+        tests: [not_null, unique]
+
+  - name: stg_marketing_campagnes
+    columns:
+      - name: campagne_id
+        tests: [not_null, unique]
+
+  - name: stg_marketing_envois
+    description: "Envois nettoyés -- statut regroupé (FR/EN), contact inconnu flagué."
+    columns:
+      - name: envoi_id
+        tests: [not_null, unique]
+      - name: statut
+        tests:
+          - accepted_values:
+              values: ["ENVOYE", "OUVERT", "CLIQUE", "DESABONNE", "INCONNU"]
+
+  - name: stg_marketing_evenements_web
+    columns:
+      - name: session_id
+        tests: [not_null]
+
+  - name: stg_marketing_stats_saas
+    columns:
+      - name: campagne_id
+        tests: [not_null, unique]

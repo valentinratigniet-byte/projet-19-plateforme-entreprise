@@ -1,0 +1,28 @@
+version: 2
+
+models:
+  - name: dim_contact
+    description: "Contacts -- accès restreint à role_marketing uniquement (donnée personnelle, role_direction non habilité)."
+    columns:
+      - name: contact_id
+        tests: [not_null, unique]
+
+  - name: fait_envois
+    columns:
+      - name: envoi_id
+        tests: [not_null, unique]
+
+  - name: fait_evenements_web
+    columns:
+      - name: session_id
+        tests: [not_null]
+
+  - name: fait_performance_campagnes
+    description: "Mart agrégé (pas de contact individuel) -- accessible à role_direction, contrairement aux autres marts du domaine."
+    columns:
+      - name: campagne_id
+        tests: [not_null, unique]
+      - name: coherent_avec_mysql
+        tests:
+          - accepted_values:
+              values: [true, false]

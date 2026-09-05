@@ -1,0 +1,16 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: marketing_contacts
+        description: "Copie brute des contacts MySQL (état courant complet, remplacé à chaque run)."
+      - name: marketing_campagnes
+        description: "Copie brute des campagnes MySQL."
+      - name: marketing_envois
+        description: "Copie brute des envois MySQL (état courant complet)."
+      - name: marketing_evenements_web
+        description: "Copie brute du flux JSON événementiel (append, aplati à l'ingestion)."
+      - name: marketing_stats_saas
+        description: "Copie brute des stats de campagnes récupérées par polling OAuth2 sur l'API SaaS (état courant)."
