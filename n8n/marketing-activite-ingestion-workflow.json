@@ -1,0 +1,68 @@
+{
+  "name": "Projet 19 - Ingestion Marketing/Activite",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 4 * * *" }
+          ]
+        }
+      },
+      "id": "trigger-quotidien",
+      "name": "Tous les jours a 4h (pull)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 200]
+    },
+    {
+      "parameters": {
+        "command": "bash /opt/projet19/domaines/marketing-activite/run_ingestion.sh"
+      },
+      "id": "ssh-ingestion",
+      "name": "Ingestion MySQL + JSON + API SaaS -> raw.marketing_*",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [460, 200],
+      "credentials": {
+        "sshPassword": { "id": "A_CONFIGURER", "name": "VPS Projet 19" }
+      }
+    },
+    {
+      "parameters": {
+        "path": "projet19-marketing-webhook",
+        "httpMethod": "POST",
+        "responseMode": "onReceived"
+      },
+      "id": "webhook-push",
+      "name": "Webhook SaaS (push temps reel)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 400],
+      "webhookId": "projet19-marketing-webhook"
+    },
+    {
+      "parameters": {
+        "command": "bash /opt/projet19/domaines/marketing-activite/run_ingestion.sh"
+      },
+      "id": "ssh-refresh-apres-push",
+      "name": "Rafraichir raw.marketing_stats_saas",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [460, 400],
+      "credentials": {
+        "sshPassword": { "id": "A_CONFIGURER", "name": "VPS Projet 19" }
+      }
+    }
+  ],
+  "connections": {
+    "Tous les jours a 4h (pull)": {
+      "main": [[{ "node": "Ingestion MySQL + JSON + API SaaS -> raw.marketing_*", "type": "main", "index": 0 }]]
+    },
+    "Webhook SaaS (push temps reel)": {
+      "main": [[{ "node": "Rafraichir raw.marketing_stats_saas", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}
