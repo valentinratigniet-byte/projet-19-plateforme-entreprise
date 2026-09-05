@@ -1,5 +1,18 @@
 # Housekeeping — comparatif pganalyze vs pgHero vs script maison
 
+**Capture réelle** (pgHero déployé sur le VPS, `SET ROLE` non applicable ici
+— page servie via `dbt_transform`) — l'onglet Overview confirme
+`pg_stat_statements` non activé (trouvaille ci-dessous, détectée par
+l'outil lui-même) :
+
+![pgHero — Overview](../screenshots/pghero-tables.png)
+
+L'onglet Space liste les **vraies tables du projet** (`fait_ventes`,
+`dim_client`, `dim_fournisseur`, `ecart_budget_ventes`...), pas une
+capture d'une base de démo :
+
+![pgHero — Space (vraies tables du projet)](../screenshots/pghero-space.png)
+
 Même format que les comparatifs d'outils du
 [Projet 18](https://github.com/valentinratigniet-byte/projet-18-monitoring-energie-rte).
 **pganalyze** comparé sur documentation publique (outil payant, décision

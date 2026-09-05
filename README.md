@@ -151,7 +151,7 @@ flowchart TD
 4. ✅ Domaine 3 — Marketing/Activité — **terminé le 2026-09-05**, cf. [`domaines/marketing-activite/`](domaines/marketing-activite/)
 5. ✅ Consolidation constellation + dictionnaire global + connectique multi-domaines + **analyse transverse** (`docs/analyse-transverse.md`, livrable obligatoire) — **terminée le 2026-09-05**
 6. ✅ Housekeeping transverse (index/bloat sur les 3 sources + l'entrepôt) — **terminée le 2026-09-05**
-7. Filiation branché
+7. ✅ Filiation branché (scan additif `scan_database.py --merge`, 137 nœuds/7 systèmes) — **terminée le 2026-09-05**
 8. **(Optionnelle) Hermès Agent** — en standby, ajoutée seulement si le
    reste du projet est solide et que ça vaut le temps investi. Surveiller
    un pipeline qui n'existe pas encore n'a pas de sens — même schéma que
@@ -373,6 +373,13 @@ d'architecture plutôt qu'une conclusion forcée. Dictionnaire global
 généré via `dbt docs generate` (vérifié). dbt **51/51 tests** sur le
 projet entier.
 
+<details>
+<summary>📸 Graphe de lineage dbt réel (constellation, 24 modèles)</summary>
+
+![dbt docs — graphe de lineage complet](docs/screenshots/dbtdocs-lineage.png)
+
+</details>
+
 **Phase 6 (housekeeping transverse) — terminée.** Script maison
 (index inutilisés + bloat) sur les **3 vraies bases** du projet
 (Postgres, SQL Server, MySQL — l'AS/400 simulé n'a pas de base à
@@ -383,6 +390,13 @@ objets système internes, et des clés primaires Postgres à tort
 signalées "à supprimer". [`docs/housekeeping/comparatif.md`](docs/housekeeping/comparatif.md) —
 constat : aucun outil du marché (pganalyze, pgHero) ne couvre à lui seul
 les 3 technologies réellement utilisées dans ce projet.
+
+<details>
+<summary>📸 pgHero réellement déployé (vraies tables du projet)</summary>
+
+![pgHero — Space, vraies tables du projet](docs/screenshots/pghero-space.png)
+
+</details>
 
 **Phase 7 (Filiation branché) — terminée.** Intégration additive dans
 [projet-14-filiation](https://github.com/valentinratigniet-byte/projet-14-filiation)

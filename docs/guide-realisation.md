@@ -282,7 +282,11 @@ clic → visite réel), consommés par les simulateurs MySQL et JSON.
 - **MySQL 8** (0€, self-hosted) — contacts/campagnes/envois, avec un
   défaut MySQL-spécifique original : mojibake réel (bug de charset
   latin1/utf8mb4 simulé par un vrai aller-retour d'encodage, pas un texte
-  aléatoire).
+  aléatoire). **Erreur de mesure trouvée et corrigée en préparant les
+  schémas avant/après** (voir `domaines/marketing-activite/apres.md`) :
+  le taux documenté initialement (~8 %) confondait le taux de *tirage*
+  du générateur avec le taux de défaut *visible* — le bug ne se voit que
+  sur un nom déjà accentué, mesuré à 0/206 occurrence visible sur ce jeu.
 - **Flux JSON événementiel** — structure semi-structurée (objet
   `contexte` imbriqué), aplati à l'ingestion via un nouvel adaptateur
   générique `json_file.py`.
@@ -374,7 +378,18 @@ ingérée.
   le vrai prochain chantier de consolidation, pas encore fait.
 - `dbt docs generate` vérifié fonctionnel (catalogue + lineage sur 24
   modèles/3 snapshots/51 tests/12 sources) — le dictionnaire global
-  promis, pas dupliqué à la main.
+  promis, pas dupliqué à la main. Capture réelle du graphe de lineage
+  complet (généré via tunnel SSH contre l'entrepôt, servi en statique
+  localement, pas une maquette) :
+
+  ![dbt docs — graphe de lineage complet du projet](screenshots/dbtdocs-lineage.png)
+
+  On y voit la vraie constellation : les 3 couloirs sources (vert, `raw.*`)
+  convergent vers leurs snapshots/staging respectifs (une colonne par
+  domaine), puis vers les marts (à droite) — `dim_date`/`ecart_budget_ventes`/
+  `synthese_mensuelle_transverse` visiblement raccordés aux 3 domaines à
+  la fois, la preuve visuelle du modèle constellation plutôt qu'une
+  affirmation textuelle.
 
 **51/51 tests dbt du projet entier passent** (24 modèles, 3 snapshots,
 1 seed, 12 sources).

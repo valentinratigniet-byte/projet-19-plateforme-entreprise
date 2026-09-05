@@ -12,8 +12,9 @@ quelles dans `raw`.
 |---|---|
 | Contacts | 206 |
 | dont casse d'email incohérente | ~10 % |
-| dont nom avec encodage suspect (bug charset latin1/utf8mb4) | ~8 % |
-| dont doublons probables (ré-inscription, email identique) | ~5 % |
+| dont tirage "corruption d'encodage" appliqué par le simulateur | 8 % (paramètre du générateur, pas un défaut visible) |
+| dont mojibake **réellement visible** dans les données actuelles | **0 %** (0/206, mesuré — voir constat ci-dessous) |
+| dont doublons probables (ré-inscription, email identique) | 5,8 % (12/206) |
 | Campagnes | 8 |
 | Envois | 755 |
 | dont statut en anglais (stack marketing typique) | variable, mélange FR/EN |
@@ -48,8 +49,18 @@ supposition.
 
 - **Identité contact** : pas de clé stable entre systèmes — email seul,
   avec casse incohérente et doublons réels.
-- **Encodage** : un sous-ensemble de noms est illisible en l'état
-  (mojibake), un vrai bug de configuration MySQL simulé, pas une faute
-  de frappe isolée.
+- **Encodage** : le simulateur applique un vrai bug de configuration
+  MySQL (colonne latin1 au lieu d'utf8mb4, `source/generer_evenements.py::_mojibake`)
+  sur un tirage aléatoire de 8 % des noms — **mais ce bug ne devient
+  visible que sur un nom qui contient déjà un accent** (le round-trip
+  UTF-8 → latin1 est un no-op sur de l'ASCII pur). Mesuré précisément :
+  8,5 % des 200 noms canoniques ont un accent, 8 % subissent le tirage
+  de corruption, l'intersection donne **0 occurrence visible sur ce
+  jeu de données** (0/206) — un résultat plausible, pas un bug du
+  générateur (voir le calcul détaillé dans `apres.md`). Documenté
+  précisément après avoir trouvé et corrigé une erreur de mesure : une
+  première version de cette doc rapportait "~8 % d'encodage suspect" en
+  confondant le taux de tirage du générateur avec un taux de défaut
+  réellement observé dans les données.
 - **Rattachement web → campagne** : dépend d'UTM libres, jamais garantis
   cohérents (casse, typo constatée).

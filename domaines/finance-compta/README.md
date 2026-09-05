@@ -24,6 +24,49 @@ du raisonnement dans l'[issue #2](https://github.com/valentinratigniet-byte/vale
   tentative de lecture réelle.
 - **Workflow n8n** — export prêt (`n8n/finance-compta-ingestion-workflow.json`).
 
+## Pipeline (schéma réel, étape par étape)
+
+```mermaid
+flowchart LR
+    classDef dirty fill:#D9534F,stroke:#a83a36,color:#fff
+    classDef clean fill:#2FA36B,stroke:#1f7a51,color:#fff
+    classDef step fill:#137A8B,stroke:#0d5866,color:#fff
+
+    S1["SQL Server\nfournisseurs + écritures"]:::dirty --> ING["Adaptateur SQL Server"]:::step
+    S2["CSV relevé bancaire"]:::dirty --> ING2["Adaptateur CSV"]:::step
+    S3["Factur-X (XML structuré)\n+ PDF non structuré (OCR dégradé)"]:::dirty --> ING3["Adaptateur Factur-X"]:::step
+    ING & ING2 & ING3 --> RAW["raw.finance_*\ncopie brute 1:1"]:::dirty
+    RAW --> SNAP["Snapshot dbt (SCD2)\nhistorise les fournisseurs"]:::step
+    SNAP --> STG["staging.stg_finance_*\n4 modèles"]:::clean
+    STG --> MARTS["marts.dim_fournisseur\nmarts.fait_ecritures\nmarts.fait_rapprochement_factures"]:::clean
+    MARTS --> RLS["RLS + restriction colonne IBAN\n8/8 SET ROLE vérifiés"]:::clean
+```
+
+**Nettoyage réel, ligne par ligne** (extraction directe de l'entrepôt,
+jointure `FournisseurID` = `fournisseur_id`) :
+
+| `raw.finance_fournisseurs` (brut) | → | `staging.stg_finance_fournisseurs` (net) |
+|---|---|---|
+| `FournisseurID 15` · `SIREN = "200 524 117"` (espaces) | | `siren_normalise = 200524117`, `siren_valide = true` |
+| `FournisseurID 16` · `SIREN = "845 533 873"` | | `siren_normalise = 845533873`, `siren_valide = true` |
+| `FournisseurID 35` · `SIREN = "577 485 562"` | | `siren_normalise = 577485562`, `siren_valide = true` |
+
+Le SIREN brut mélange formats avec/sans espaces (saisie ERP réaliste) —
+normalisé (`regexp_replace`) puis validé par motif (9 chiffres) plutôt
+que rejeté : une facture reste rattachable à son fournisseur même si le
+SIREN est mal renseigné.
+
+**Orchestration ingestion (n8n)** — schéma reconstruit à partir de l'export
+réel [`n8n/finance-compta-ingestion-workflow.json`](../../n8n/finance-compta-ingestion-workflow.json) :
+
+```mermaid
+flowchart LR
+    T["⏰ Tous les jours à 3h\n(Schedule Trigger)"] --> N["🔧 Ingestion SQL Server + CSV + Factur-X\n→ raw.finance_* (SSH)"]
+```
+
+Export prêt, import manuel dans n8n restant (même contrainte que
+Ventes/Commerce).
+
 ## Trouvaille phare
 
 **91 % des factures Factur-X (structurées) se rapprochent automatiquement**

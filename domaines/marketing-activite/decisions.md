@@ -67,7 +67,11 @@ Format : **donnée concernée → décision → pourquoi → alternative écart�
   de fabriquer un texte faux sur des séquences d'octets invalides →
   alternative écartée : tenter la réparation en SQL avec gestion
   d'erreur (ajout de complexité pour un gain incertain — un vrai
-  correctif relève de la source, pas d'un rattrapage aval).
+  correctif relève de la source, pas d'un rattrapage aval). **Mesuré
+  après coup** : sur ce jeu de données précis, 0/206 noms montrent une
+  corruption visible (le tirage de 8 % du générateur ne produit un
+  effet que sur un nom déjà accentué — voir `apres.md`) ; le flag reste
+  la bonne décision de conception, simplement pas déclenché ici.
 - **Doublons de contacts** → flagués, pas fusionnés → même raisonnement
   que Ventes/Commerce : pas de règle de survivorship métier définie.
 - **Événements web domain-dupliqués (~3%)** → **conservés tels quels**
