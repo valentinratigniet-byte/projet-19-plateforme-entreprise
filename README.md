@@ -346,9 +346,24 @@ Doc complète du domaine dans
 (`avant.md`/`decisions.md`/`regles-transformation.md`/`apres.md`).
 
 <details>
-<summary>📸 Les 3 workflows n8n publiés dans l'instance réelle</summary>
+<summary>📸 Les 10 workflows n8n publiés dans l'instance réelle (3 ingestion + 7 automatisation transverse)</summary>
 
 ![n8n — workflows Projet 19 publiés](docs/screenshots/n8n-workflows-actifs.png)
+
+Au-delà des 3 workflows d'ingestion par domaine, 7 workflows
+opérationnels transverses (`ops/`, cf. [`ops/README.md`](ops/README.md)) :
+housekeeping hebdomadaire, sauvegarde de l'entrepôt, refresh Filiation
+automatisé (résout la limite documentée Phase 7), reverse ETL planifié,
+vérification RLS post-déploiement (déclenchée par le DAG dbt), alerte
+échec DAG, alerte dérive qualité, watcher Factur-X entrant, traitement
+demande RGPD — chacun répond à un manque réel identifié après la Phase 7,
+pas des workflows spéculatifs. Tous credentialés, publiés, **testés
+réellement** (webhooks via un vrai appel HTTP, schedules via exécution
+directe du script sous-jacent) — deux bugs trouvés et corrigés en
+testant : l'expression n8n lisait le mauvais chemin dans le payload
+webhook (`$json.body.x`, pas `$json.x`), et n8n exige de désactiver puis
+réactiver un workflow pour qu'un webhook déjà publié reprenne en compte
+un nœud modifié.
 
 </details>
 

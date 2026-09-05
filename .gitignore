@@ -4,6 +4,12 @@
 !.env.example
 run_ingestion.sh
 !run_ingestion.sh.example
+run_*.sh
+!run_*.sh.example
+refresh_filiation.sh
+!refresh_filiation.sh.example
+*_deploy_key
+ops/logs/
 
 # Airflow runtime
 airflow/logs/

@@ -1,0 +1,36 @@
+#!/bin/bash
+# Copier en run_verifier_rls.sh sur le serveur (jamais commité). Relance
+# les 3 test_rls.py de domaine (pas un nouveau script, les memes que
+# ceux ecrits aux Phases 2-4) et journalise. Appele par le workflow n8n
+# "Verification RLS post-deploiement", lui-meme declenche par un appel
+# webhook ajoute a la fin du DAG dbt (post dbt_test) -- les policies RLS
+# sont recreees a chaque dbt run (post_hook, DROP+CREATE), donc revalider
+# apres un run reel a plus de sens qu'a intervalle fixe arbitraire.
+set -euo pipefail
+
+mkdir -p /opt/projet19/ops/logs
+LOG=/opt/projet19/ops/logs/rls.log
+
+verifier() {
+  local domaine="$1"
+  echo "--- $domaine ---" >> "$LOG"
+  if docker run --rm \
+    --network entrepot_default \
+    -v "/opt/projet19/domaines/$domaine:/domain" \
+    -e PGHOST=projet19-postgres -e PGPORT=5432 -e PGDATABASE=projet19 \
+    -e PGSUPERUSER=postgres -e PGSUPERUSER_PASSWORD=change-me \
+    -w /domain \
+    projet19-ingestion python test_rls.py >> "$LOG" 2>&1; then
+    echo "[$domaine] OK" >> "$LOG"
+  else
+    echo "[$domaine] ECHEC -- voir detail ci-dessus" >> "$LOG"
+  fi
+}
+
+{
+  echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
+  verifier ventes-commerce
+  verifier finance-compta
+  verifier marketing-activite
+  echo
+} >> "$LOG" 2>&1

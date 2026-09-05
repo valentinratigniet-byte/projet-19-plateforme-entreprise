@@ -1,0 +1,39 @@
+{
+  "name": "Projet 19 - Refresh Filiation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 7 * * 1" }
+          ]
+        }
+      },
+      "id": "trigger-hebdo",
+      "name": "Chaque lundi a 7h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "command": "bash /opt/projet19/ops/refresh_filiation.sh"
+      },
+      "id": "ssh-refresh-filiation",
+      "name": "Scan additif Filiation + push git",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": {
+        "sshPassword": { "id": "A_CONFIGURER", "name": "VPS Projet 19" }
+      }
+    }
+  ],
+  "connections": {
+    "Chaque lundi a 7h": {
+      "main": [[{ "node": "Scan additif Filiation + push git", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

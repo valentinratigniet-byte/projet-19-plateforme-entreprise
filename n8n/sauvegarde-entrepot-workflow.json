@@ -1,0 +1,39 @@
+{
+  "name": "Projet 19 - Sauvegarde entrepot",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 1 * * *" }
+          ]
+        }
+      },
+      "id": "trigger-quotidien",
+      "name": "Tous les jours a 1h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "command": "bash /opt/projet19/ops/run_backup_entrepot.sh"
+      },
+      "id": "ssh-backup",
+      "name": "pg_dump entrepot (retention 7 jours)",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": {
+        "sshPassword": { "id": "A_CONFIGURER", "name": "VPS Projet 19" }
+      }
+    }
+  ],
+  "connections": {
+    "Tous les jours a 1h": {
+      "main": [[{ "node": "pg_dump entrepot (retention 7 jours)", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

@@ -1,0 +1,38 @@
+{
+  "name": "Projet 19 - Verification RLS post-deploiement",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "projet19-dbt-succes",
+        "httpMethod": "POST",
+        "responseMode": "onReceived"
+      },
+      "id": "webhook-succes",
+      "name": "Webhook succes DAG (Airflow)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "projet19-dbt-succes"
+    },
+    {
+      "parameters": {
+        "command": "bash /opt/projet19/ops/run_verifier_rls.sh"
+      },
+      "id": "ssh-verifier-rls",
+      "name": "Rejouer les 3 test_rls.py de domaine",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": {
+        "sshPassword": { "id": "A_CONFIGURER", "name": "VPS Projet 19" }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook succes DAG (Airflow)": {
+      "main": [[{ "node": "Rejouer les 3 test_rls.py de domaine", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

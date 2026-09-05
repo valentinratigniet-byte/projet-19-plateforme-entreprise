@@ -68,7 +68,7 @@ en 7 étapes, cf. cadrage ([issue #2](https://github.com/valentinratigniet-byte/
 - **SIREN** → normalisé (espaces supprimés) et flaggé valide/invalide,
   pas rejeté → un fournisseur reste exploitable même sans SIREN correct
   → alternative écartée : exiger un SIREN valide pour toute jointure
-  (aurait exclu 10 % des fournisseurs de toute analyse).
+  (aurait exclu des fournisseurs de toute analyse sans raison métier).
 - **Montant illisible côté facture non structurée** → conservé `NULL`,
   jamais deviné → une facture sans montant lisible ne doit pas fausser
   un total → alternative écartée : estimer le montant à partir d'une

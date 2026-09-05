@@ -1,0 +1,23 @@
+#!/bin/bash
+# Copier en run_backup_entrepot.sh sur le serveur (jamais commité).
+# pg_dump complet de l'entrepot, conserve les 7 derniers jours (rotation
+# simple par date dans le nom de fichier). Appele par le workflow n8n
+# "Sauvegarde entrepot".
+#
+# ponytail: rotation par nombre de fichiers, pas de politique de
+# retention par taille disque -- a revoir si l'entrepot grossit
+# significativement.
+set -euo pipefail
+
+BACKUP_DIR=/opt/projet19/backups
+mkdir -p "$BACKUP_DIR"
+
+STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+docker exec projet19-postgres pg_dump -U postgres -d projet19 \
+  | gzip > "$BACKUP_DIR/projet19_${STAMP}.sql.gz"
+
+# Rotation : ne garde que les 7 plus recentes
+ls -1t "$BACKUP_DIR"/projet19_*.sql.gz | tail -n +8 | xargs -r rm --
+
+echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) backup OK: projet19_${STAMP}.sql.gz ($(du -h "$BACKUP_DIR/projet19_${STAMP}.sql.gz" | cut -f1))" \
+  >> "$BACKUP_DIR/backup.log"

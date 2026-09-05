@@ -1,0 +1,38 @@
+{
+  "name": "Projet 19 - Alerte echec DAG dbt",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "projet19-dbt-echec",
+        "httpMethod": "POST",
+        "responseMode": "onReceived"
+      },
+      "id": "webhook-echec",
+      "name": "Webhook echec DAG (Airflow)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "projet19-dbt-echec"
+    },
+    {
+      "parameters": {
+        "command": "=echo \"$(date -u +%Y-%m-%dT%H:%M:%SZ) ECHEC {{$json[\"body\"][\"dag_id\"]}}/{{$json[\"body\"][\"task_id\"]}}\" >> /opt/projet19/ops/logs/alertes.log"
+      },
+      "id": "ssh-log-alerte",
+      "name": "Journaliser l'alerte",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": {
+        "sshPassword": { "id": "A_CONFIGURER", "name": "VPS Projet 19" }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook echec DAG (Airflow)": {
+      "main": [[{ "node": "Journaliser l'alerte", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

@@ -1,0 +1,21 @@
+#!/bin/bash
+# Copier en run_housekeeping.sh sur le serveur (jamais commité), remplir
+# les vrais mots de passe. Appelé par le workflow n8n "Housekeeping
+# hebdomadaire" (nœud SSH).
+set -euo pipefail
+
+mkdir -p /opt/projet19/ops/logs
+
+{
+  echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
+  docker run --rm \
+    --network entrepot_default \
+    -v /opt/projet19/docs/housekeeping:/domain \
+    -e PYTHONPATH=/app \
+    -e PGSUPERUSER_PASSWORD=change-me \
+    -e MSSQL_SA_PASSWORD=change-me \
+    -e MYSQL_ROOT_PASSWORD=change-me \
+    -w /domain \
+    projet19-ingestion python script_maison.py
+  echo
+} >> /opt/projet19/ops/logs/housekeeping.log 2>&1

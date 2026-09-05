@@ -1,0 +1,46 @@
+#!/bin/bash
+# Copier en refresh_filiation.sh sur le serveur (jamais commité).
+# Nécessite une clé de déploiement dédiée sur /opt/projet19/ops/filiation_deploy_key
+# (ed25519, ajoutée comme deploy key en écriture UNIQUEMENT sur
+# projet-14-filiation via `gh repo deploy-key add --allow-write` --
+# jamais un token de compte entier).
+#
+# Resout la limite documentee en Phase 7 ("pas de refresh automatise,
+# l'entrepot n'est pas expose publiquement") : ce script tourne SUR le
+# VPS, sur le meme reseau que projet19-postgres -- pas besoin d'exposer
+# quoi que ce soit sur Internet, contrairement au refresh CI GitHub
+# Actions du Projet 18 (qui lui doit atteindre Supabase depuis l'exterieur).
+set -euo pipefail
+
+DBT_PASSWORD=change-me
+DEPLOY_KEY=/opt/projet19/ops/filiation_deploy_key
+REPO_DIR=/opt/projet19/ops/projet-14-filiation
+REPO_URL="git@github.com:valentinratigniet-byte/projet-14-filiation.git"
+
+export GIT_SSH_COMMAND="ssh -i $DEPLOY_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+
+if [ ! -d "$REPO_DIR" ]; then
+  git clone "$REPO_URL" "$REPO_DIR"
+fi
+
+cd "$REPO_DIR"
+git fetch origin main
+git reset --hard origin/main
+
+docker run --rm \
+  --network entrepot_default \
+  -v "$REPO_DIR:/repo" \
+  -e DATABASE_URL="postgresql+psycopg2://dbt_transform:${DBT_PASSWORD}@projet19-postgres:5432/projet19" \
+  -w /repo \
+  projet19-ingestion \
+  python scripts/scan_database.py --schemas raw staging marts --merge \
+    --label "Projet 19 - Plateforme entreprise" --html index.html --snapshots snapshots
+
+git add index.html snapshots/
+if git diff --cached --quiet; then
+  echo "Rien a committer (aucun changement de schema/volumetrie)"
+  exit 0
+fi
+git -c user.name="n8n-projet19" -c user.email="n8n@projet19.local" \
+  commit -m "chore: refresh Projet 19 (n8n automatise)"
+git push origin main

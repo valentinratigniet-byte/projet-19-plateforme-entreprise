@@ -1,0 +1,38 @@
+{
+  "name": "Projet 19 - Watcher Facture-X entrant",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "projet19-facturx-entrant",
+        "httpMethod": "POST",
+        "responseMode": "onReceived"
+      },
+      "id": "webhook-facturx",
+      "name": "Webhook facture recue",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "projet19-facturx-entrant"
+    },
+    {
+      "parameters": {
+        "command": "bash /opt/projet19/domaines/finance-compta/run_ingestion.sh"
+      },
+      "id": "ssh-ingestion-facturx",
+      "name": "Ingestion Factur-X -> raw.finance_*",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": {
+        "sshPassword": { "id": "A_CONFIGURER", "name": "VPS Projet 19" }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook facture recue": {
+      "main": [[{ "node": "Ingestion Factur-X -> raw.finance_*", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

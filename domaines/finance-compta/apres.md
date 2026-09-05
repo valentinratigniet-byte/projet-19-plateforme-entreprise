@@ -12,7 +12,7 @@ RLS multi-rôles + sécurité colonne vérifiées. 26/26 tests dbt passent.
 
 | Indicateur | Avant | Après |
 |---|---|---|
-| Fournisseurs | 80 (8 SIREN invalides/absents) | 80 (SIREN normalisé et flagué) |
+| Fournisseurs | 80 (1 SIREN invalide/absent, mesuré — voir `avant.md`) | 80 (SIREN normalisé et flagué) |
 | Écritures comptables | 866 (11 doublons de saisie exacts inclus) | **855** (doublons supprimés) |
 | Montant HT total | non calculable de façon fiable (2 formats texte) | **6 033 449,03 €** |
 | Montant TTC total | — | **7 240 138,82 €** |

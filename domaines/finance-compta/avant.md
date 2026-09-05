@@ -10,7 +10,7 @@ aucune transformation à ce stade.
 | Métrique | Valeur |
 |---|---|
 | Fournisseurs | 80 |
-| dont SIREN invalide ou absent | 8 (10 %) |
+| dont SIREN invalide ou absent | 1 (1,3 %) — mesuré en base le 2026-09-05 en construisant `ops/verifier_derive_qualite.py` ; corrige un chiffre précédemment documenté (8, 10 %) qui datait d'une génération antérieure des données et n'a pas été revérifié depuis |
 | Écritures comptables (8 mois simulés) | 866 |
 | dont montants stockés en texte format FR (virgule) | ~15 % |
 | dont `FournisseurID` orphelin | ~2 % |

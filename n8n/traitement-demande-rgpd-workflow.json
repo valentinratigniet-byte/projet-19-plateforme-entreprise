@@ -1,0 +1,38 @@
+{
+  "name": "Projet 19 - Traitement demande RGPD",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "projet19-rgpd",
+        "httpMethod": "POST",
+        "responseMode": "onReceived"
+      },
+      "id": "webhook-rgpd",
+      "name": "Webhook demande RGPD (email en payload)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "projet19-rgpd"
+    },
+    {
+      "parameters": {
+        "command": "=bash /opt/projet19/domaines/marketing-activite/run_rgpd_anonymiser.sh \"{{$json[\"body\"][\"email\"]}}\""
+      },
+      "id": "ssh-anonymiser",
+      "name": "Anonymiser le contact",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": {
+        "sshPassword": { "id": "A_CONFIGURER", "name": "VPS Projet 19" }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook demande RGPD (email en payload)": {
+      "main": [[{ "node": "Anonymiser le contact", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

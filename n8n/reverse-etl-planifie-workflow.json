@@ -1,0 +1,39 @@
+{
+  "name": "Projet 19 - Reverse ETL planifie",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 8 * * 1" }
+          ]
+        }
+      },
+      "id": "trigger-hebdo",
+      "name": "Chaque lundi a 8h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "command": "bash /opt/projet19/ops/run_reverse_etl.sh"
+      },
+      "id": "ssh-reverse-etl",
+      "name": "Segment contacts engages -> SaaS",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": {
+        "sshPassword": { "id": "A_CONFIGURER", "name": "VPS Projet 19" }
+      }
+    }
+  ],
+  "connections": {
+    "Chaque lundi a 8h": {
+      "main": [[{ "node": "Segment contacts engages -> SaaS", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

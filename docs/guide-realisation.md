@@ -571,9 +571,104 @@ dans le conteneur (pas besoin du mot de passe UI, rotationné par Valentin
 et non partagé) — `state: success`, **24 modèles, 3 snapshots, 51/51
 tests, 1 seed, catalogue généré**, contre l'entrepôt réel.
 
+## 7 workflows n8n transverses supplémentaires (ops/)
+
+Demande explicite de Valentin ("ajoute des workflows n8n, propose en
+10") — 10 propositions faites, chacune répondant à un manque réel déjà
+identifié dans le projet (pas des workflows spéculatifs), toutes
+construites sur validation ("tout"). Détail des scripts dans
+[`ops/README.md`](../ops/README.md).
+
+**Les 7 nouveaux, au-delà des 3 d'ingestion déjà actifs** : housekeeping
+hebdomadaire, sauvegarde entrepôt (`pg_dump`, rétention 7 jours),
+reverse ETL planifié, vérification RLS post-déploiement (webhook
+déclenché par le DAG dbt après `dbt_test`), digest hebdomadaire
+transverse (CA Ventes + rapprochement Factur-X + cohérence campagnes),
+alerte dérive qualité (compare les taux mesurés à la référence
+documentée), refresh Filiation automatisé, watcher Factur-X entrant
+(webhook), traitement demande RGPD (webhook, anonymisation réelle d'un
+contact — le seul cas du projet où une donnée est réécrite plutôt que
+flaguée, une demande RGPD ayant une cible et une action attendue
+explicites contrairement au mojibake/doublons).
+
+**Import identique aux 3 premiers** (copier-coller JSON sur le canvas,
+credential SSH existante rattachée via l'API interne `/rest/*`) —
+mais 3 bugs réels supplémentaires trouvés en testant chacun réellement
+(exécution directe des scripts + vrais appels HTTP sur les webhooks,
+pas une confiance aveugle dans le code) :
+
+1. **`siren_valide` compté en NULL, pas en `false`** —
+   `verifier_derive_qualite.py` utilisait `where not siren_valide` :
+   quand le SIREN est absent, `siren_normalise ~ regex` sur `NULL`
+   renvoie `NULL`, pas `false`, donc le filtre `not siren_valide`
+   **excluait** ces lignes au lieu de les compter, sous-estimant le taux
+   réel (mesuré 0,0 % au lieu de la réalité). Corrigé avec
+   `where siren_valide is not true`.
+2. **Deux chiffres historiques faux découverts en corrigeant le bug
+   ci-dessus** — le script corrigé a mesuré un taux SIREN invalide de
+   1,3 % (1/80) là où `avant.md` documentait 10 % (8/80) depuis la
+   Phase 3, et un taux de doublons Ventes de 8,9 % (28/314) là où
+   `avant.md` documentait 4,5 % (14/314). Reproduit le générateur de
+   données en local pour confirmer : le chiffre "8 SIREN irréguliers"
+   correspond bien au **brut** (4 absents + 4 avec espaces, ces
+   derniers redevenant valides après normalisation en staging), mais
+   les deux figures documentées n'avaient jamais été revérifiées contre
+   les vraies données après leur première mesure — même catégorie de
+   défaut que le mojibake Marketing (Compléments post-Phase 7 ci-dessus).
+   Corrigé dans `avant.md`/`apres.md`/`decisions.md` des deux domaines,
+   et dans les valeurs de référence du script.
+3. **Expression n8n webhook : mauvais chemin dans le payload** — les
+   nœuds SSH des workflows "Alerte échec DAG" et "Traitement RGPD"
+   lisaient `{{$json["dag_id"]}}`/`{{$json["email"]}}` directement, alors
+   qu'un nœud Webhook n8n place le corps de la requête sous
+   `$json.body.*`. Trouvé en testant avec un vrai `curl -X POST` (pas en
+   relisant le JSON) : la ligne de log résultante était vide
+   (`ECHEC dbt_pipeline: /`). Corrigé (`$json["body"]["dag_id"]`, etc.)
+   — **découverte supplémentaire en corrigeant** : mettre à jour la
+   définition du nœud via l'API REST (`PATCH /rest/workflows/{id}`) ne
+   suffit pas à faire reprendre en compte le nouveau paramètre par un
+   webhook déjà enregistré et actif — il faut désactiver puis réactiver
+   le workflow (`POST .../deactivate` puis `POST .../activate` avec le
+   `versionId` courant) pour forcer n8n à ré-enregistrer le webhook.
+   Revérifié avec un nouveau `curl` après correction : ligne de log
+   correcte.
+
+**Activation via API découverte au passage** : `PATCH
+/rest/workflows/{id}` avec `{"active": true}` répond `200` mais ne
+change **rien** silencieusement (n8n version testée) — la vraie
+activation passe par `POST /rest/workflows/{id}/activate` avec le
+`versionId` courant du workflow en corps de requête (erreur Zod claire
+si absent : `"invalid_type", "path": ["versionId"]`, ce qui a permis de
+trouver le bon contrat sans deviner). Les 3 premiers workflows
+(Phase "n8n + DAG dbt réel" ci-dessus) avaient en réalité été publiés
+manuellement par Valentin via l'UI, pas par mon PATCH — jamais vérifié
+avant cette session que l'API seule suffisait.
+
+**Webhooks testés avec de vrais appels HTTP** (`curl -X POST`, pas le
+mode "Execute" de l'UI qui reste en attente pour un trigger webhook) :
+alerte échec DAG, vérification RLS (a produit un vrai passage des 3
+`test_rls.py`, visible dans `ops/logs/rls.log`), watcher Factur-X,
+traitement RGPD (a réellement anonymisé un contact synthétique,
+vérifié en base : `email = 'anonymise-1@rgpd.local'`).
+
+**Refresh Filiation — deploy key GitHub, testé en conditions réelles** :
+credential créée via `gh repo deploy-key add --allow-write` (accès en
+écriture scopé au seul repo `projet-14-filiation`, pas un token compte
+entier), clé privée déposée sur le VPS. Bug trouvé en testant :
+`scan_database.py` importe `extract_filiation.py` qui importe `sqlglot`,
+absent de l'image `projet19-ingestion` — ajouté au `requirements.txt`
+avec `sqlalchemy`/`pyyaml` (déjà nécessaires), image reconstruite.
+Premier lancement réel a produit un vrai commit
+(`d7a07b1` sur `projet-14-filiation`) — 137 nœuds confirmés après fusion
+(inchangé depuis le dernier scan manuel, comportement attendu).
+
+**14 workflows n8n publiés au total** (3 ingestion + 7 ops + Eco2mix du
+Projet 18), tous vérifiés — capture réelle dans le README principal.
+
 ## Statut du projet
 
 Phases 1 à 7 terminées et vérifiées, complétées par un DAG dbt de
-production réel et les 3 workflows n8n effectivement actifs (pas
-seulement exportés). Il ne reste que la Phase 8 (optionnelle, Hermès
-Agent — en standby).
+production réel, les 3 workflows n8n d'ingestion et 7 workflows n8n
+transverses supplémentaires, tous effectivement actifs et testés (pas
+seulement exportés/écrits). Il ne reste que la Phase 8 (optionnelle,
+Hermès Agent — en standby).

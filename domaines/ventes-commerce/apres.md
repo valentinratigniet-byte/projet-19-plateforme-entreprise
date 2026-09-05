@@ -12,7 +12,7 @@ RLS multi-rôles vérifiée. Pipeline complet, vérifié à chaque étape (cf.
 
 | Indicateur | Avant | Après |
 |---|---|---|
-| Clients | 314 (14 doublons non résolus) | 314 (doublons flagués, visibles) |
+| Clients | 314 (28 doublons non résolus, mesuré — voir `avant.md`) | 314 (doublons flagués, visibles) |
 | Commandes | 2320 (dates sur 2 formats, statuts en 7 variantes) | 2320 (1 format, 3 statuts + INCONNU) |
 | Commandes avec client non identifié | ~3 %, non signalé | ~3 %, flaguées (`client_connu = false`) explicitement |
 | Chiffre d'affaires HT | non calculable de façon fiable (montants en centimes-texte) | **15 092 645,63 €** |
@@ -41,7 +41,7 @@ concrètement non exploitées côté pilotage.
    sur les clients communs — un tableur partagé avec un journal de
    versions (ou directement dans l'entrepôt via `dim_client`) éviterait
    ce désaccord silencieux.
-3. **Traiter les 14 doublons clients identifiés** (`est_doublon_probable`)
+3. **Traiter les 28 doublons clients identifiés** (`est_doublon_probable`)
    — décision de fusion à valider côté équipe commerciale (quel
    enregistrement fait foi), pas automatisable sans arbitrage métier.
 4. **Les ~3 % de commandes avec client inconnu** méritent une revue :

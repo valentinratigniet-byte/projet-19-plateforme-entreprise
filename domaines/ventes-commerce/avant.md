@@ -10,7 +10,7 @@ transformation à ce stade.
 | Métrique | Valeur |
 |---|---|
 | Clients (fichier `CLIENTS_AS400`) | 314 |
-| dont doublons probables (variante de saisie) | 14 (4,5 %) |
+| dont doublons probables (variante de saisie) | 28 (8,9 %) — mesuré en base le 2026-09-05 en construisant `ops/verifier_derive_qualite.py` ; corrige un chiffre précédemment documenté (14, 4,5 %) qui datait d'une génération antérieure des données et n'a pas été revérifié depuis |
 | Commandes (8 mois simulés, 2026-01 à 2026-08) | 2320 |
 | Commandes avec `CLICOD` orphelin (client absent du fichier clients) | ~3 % |
 | Mois avec dérive de format de date (DDMMYYYY au lieu de YYYYMMDD) | 2 (2026-03, 2026-04) |
