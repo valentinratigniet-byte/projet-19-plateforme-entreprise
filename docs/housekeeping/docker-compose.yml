@@ -1,0 +1,17 @@
+services:
+  pghero:
+    image: ankane/pghero
+    container_name: projet19-pghero
+    environment:
+      DATABASE_URL: postgres://dbt_transform:${DBT_PASSWORD}@projet19-postgres:5432/projet19
+      PGHERO_USERNAME: ${PGHERO_USERNAME}
+      PGHERO_PASSWORD: ${PGHERO_PASSWORD}
+    ports:
+      - "127.0.0.1:8091:8080"
+    networks:
+      - entrepot_default
+    restart: unless-stopped
+
+networks:
+  entrepot_default:
+    external: true
