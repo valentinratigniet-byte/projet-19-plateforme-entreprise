@@ -326,19 +326,31 @@ assumée (même discipline "mesuré pas inventé" que le reste du portfolio).
 ## ✅ Ce qui est réellement construit et vérifié
 
 **Phase 1 (infra) — Airflow.** Stack `LocalExecutor` minimale, déployée
-sur le VPS existant, webserver + scheduler healthy, DAG de vérification
-exécuté avec succès (`state: success`), exposée en HTTPS (certificat
-Let's Encrypt valide) sur [airflow-projet19.76.13.43.130.sslip.io](https://airflow-projet19.76.13.43.130.sslip.io).
+sur le VPS existant, webserver + scheduler healthy, exposée en HTTPS
+(certificat Let's Encrypt valide) sur [airflow-projet19.76.13.43.130.sslip.io](https://airflow-projet19.76.13.43.130.sslip.io).
 Entrepôt Postgres auto-hébergé, schéma `raw` + rôles à privilège minimal.
+**DAG de production réel** (`dbt_pipeline` : seed → snapshot → run → test
+→ docs generate, quotidien à 5h) construit et **vérifié en conditions
+réelles** — déclenché manuellement via la CLI Airflow, `state: success`
+de bout en bout (**24 modèles, 51/51 tests**) — remplace le DAG de
+vérification minimal de l'infra initiale.
 
 **Phase 2 (Domaine Ventes/Commerce) — terminée.** Pipeline complet
 vérifié : ingestion conteneurisée et idempotente (AS/400 + Excel) → dbt
 (snapshot SCD2, staging avec règles de nettoyage réelles, marts
 `dim_client`/`fait_ventes`, **14/14 tests**) → RLS multi-rôles
 (**8/8 cas vérifiés par `SET ROLE`**, survit aux reruns dbt) → workflow
-n8n (export prêt). Doc complète du domaine dans
+n8n **importé, publié et exécuté avec succès** dans l'instance réelle.
+Doc complète du domaine dans
 [`domaines/ventes-commerce/`](domaines/ventes-commerce/)
 (`avant.md`/`decisions.md`/`regles-transformation.md`/`apres.md`).
+
+<details>
+<summary>📸 Les 3 workflows n8n publiés dans l'instance réelle</summary>
+
+![n8n — workflows Projet 19 publiés](docs/screenshots/n8n-workflows-actifs.png)
+
+</details>
 
 **Phase 3 (Domaine Finance/Compta) — terminée.** SQL Server (édition
 Developer) + CSV bancaire + Factur-X (2 canaux), rapprochement

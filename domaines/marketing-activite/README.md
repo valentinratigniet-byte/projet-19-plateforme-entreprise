@@ -26,7 +26,10 @@ raisonnement dans l'[issue #2](https://github.com/valentinratigniet-byte/valenti
   conditions réelles, 32s), polling paginé, webhook push (réception
   confirmée côté destinataire), **reverse ETL** (segment de 124 contacts
   engagés calculé dans l'entrepôt et confirmé reçu côté SaaS).
-- **Workflow n8n** — export prêt (pull quotidien + webhook push).
+- **Workflow n8n** — importé, publié, credentialé et **exécuté avec
+  succès** (chaîne pull) dans l'instance n8n réelle ; chaîne webhook
+  configurée mais volontairement non déclenchée manuellement (attendrait
+  indéfiniment un vrai appel HTTP en mode test).
 
 ## Pipeline (schéma réel, étape par étape)
 
@@ -75,8 +78,12 @@ flowchart LR
     T2["🔔 Webhook SaaS\n(push temps réel)"] --> N2["🔧 Rafraîchir raw.marketing_stats_saas (SSH)"]
 ```
 
-Export prêt, import manuel dans n8n restant (même contrainte que les 2
-autres domaines).
+**Importé, credentialé (2 nœuds SSH) et publié**. Chaîne pull (4h)
+**exécutée manuellement avec succès**. Chaîne webhook opérationnelle mais
+non testée manuellement — un test "Execute" sur un nœud webhook met n8n
+en attente d'un vrai appel HTTP entrant, pas quelque chose à simuler à la
+main ; elle se déclenchera réellement au premier événement poussé par le
+SaaS mock.
 
 ## Trouvaille phare
 

@@ -1,5 +1,6 @@
 x-airflow-common: &airflow-common
-  image: apache/airflow:2.10.3-python3.12
+  build: .
+  image: projet19-airflow:latest
   environment: &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${AIRFLOW_DB_PASSWORD}@airflow-postgres/airflow
@@ -7,12 +8,24 @@ x-airflow-common: &airflow-common
     AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_WEBSERVER_SECRET_KEY}
     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    # Lus par dbt/profiles.yml (target "prod") -- role dbt_transform,
+    # meme role/mot de passe que pgHero (docs/housekeeping), lecture sur
+    # raw + ecriture sur staging/marts qu'il a lui-meme crees.
+    PGHOST: projet19-postgres
+    PGPORT: "5432"
+    PGUSER: dbt_transform
+    PGPASSWORD: ${DBT_PASSWORD}
+    PGDATABASE: projet19
+    PGSSLMODE: disable
   volumes:
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
     - ../dbt:/opt/dbt
   user: "${AIRFLOW_UID:-50000}:0"
+  networks:
+    - default
+    - entrepot_default
   depends_on: &airflow-common-depends-on
     airflow-postgres:
       condition: service_healthy
@@ -93,3 +106,13 @@ services:
 
 volumes:
   airflow-postgres-data:
+
+networks:
+  # Nom explicite -- attendu tel quel par les labels Traefik
+  # (traefik.docker.network) deja en place sur airflow-webserver.
+  default:
+    name: airflow_default
+  # Cree par entrepot/docker-compose.yml (projet19-postgres) ; pgHero s'y
+  # connecte deja de la meme facon (docs/housekeeping/docker-compose.yml).
+  entrepot_default:
+    external: true

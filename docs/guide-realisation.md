@@ -198,14 +198,12 @@ fonctionne réellement, pas juste "la commande s'exécute sans erreur".
    de rejouer. **Vérifié sur 2 runs consécutifs, 8/8 cas RLS OK les deux
    fois.**
 
-**Workflow n8n** — export JSON prêt (`n8n/ventes-commerce-ingestion-workflow.json`,
+**Workflow n8n** — export JSON (`n8n/ventes-commerce-ingestion-workflow.json`,
 Schedule Trigger quotidien 2h + noeud SSH qui appelle
-`run_ingestion.sh` sur le VPS, secret hors du JSON). **Import dans n8n et
-configuration de la credential SSH restent une étape manuelle** — comme
-pour le déploiement initial de n8n au Projet 18, pas automatisable sans
-clé API n8n déjà en main.
-
-**Reste réellement ouvert (Phase 2)** : import manuel du workflow n8n.
+`run_ingestion.sh` sur le VPS, secret hors du JSON) **importé et publié
+dans l'instance n8n réelle** (session ultérieure, cf. "Import n8n +
+DAG dbt réel" en fin de document) — credential SSH créée, exécution
+manuelle vérifiée avec succès.
 
 ## Phase 3 — Domaine Finance/Compta
 
@@ -268,8 +266,9 @@ les colonnes explicitement listées, IBAN exclue. **8/8 cas vérifiés** par
 `SET ROLE` + tentative de lecture réelle de la colonne (pas juste les
 GRANT déclarés).
 
-**Reste réellement ouvert (Phase 3)** : ~~workflow n8n, documentation du
-domaine~~ — fait dans la foulée (cf. Phase 3 dans le README du domaine).
+**Workflow n8n** — export prêt dès cette phase, **importé/publié/exécuté
+avec succès dans l'instance réelle** en session ultérieure (cf. "Import
+n8n + DAG dbt réel" en fin de document).
 
 ## Phase 4 — Domaine Marketing/Activité (le plus riche des 3)
 
@@ -338,8 +337,12 @@ le segment en SQL sur `marts.fait_envois`, l'envoie via `api_rest.py`, et
 relit `/api/segments` côté SaaS pour confirmer que les 124 contacts sont
 bien arrivés — pas une supposition sur le code retour.
 
-**Workflow n8n** — export prêt, avec un webhook trigger en plus du pull
-quotidien (représente le canal "push" du SaaS, cohérent avec le mock).
+**Workflow n8n** — export avec un webhook trigger en plus du pull
+quotidien (représente le canal "push" du SaaS, cohérent avec le mock),
+**importé/publié/credentialé** en session ultérieure (2 nœuds SSH). Chaîne
+pull exécutée avec succès ; chaîne webhook non testée manuellement (un
+test "Execute" sur un nœud webhook attend un vrai appel HTTP, rien à
+simuler à la main) — cf. "Import n8n + DAG dbt réel" en fin de document.
 
 ## Les 3 domaines sont terminés
 
@@ -484,7 +487,93 @@ partout ailleurs dans ce projet. Décision assumée, pas un oubli : le
 scan restera ponctuel, relancé manuellement (via le même tunnel SSH) si
 le schéma évolue significativement.
 
+## Compléments post-Phase 7 : visuels réels, import n8n, DAG dbt réel
+
+Trois compléments faits après la Phase 7, en réponse à une demande de
+documentation visuelle (avant/après, workflow) puis de vérification.
+
+**1. Schémas Mermaid + avant/après réels par domaine.** Ajoutés aux 3
+README de domaine : pipeline complet (source → raw → snapshot → staging
+→ marts → RLS), workflow n8n reconstruit depuis les vrais JSON exportés,
+extraits avant/après **réels** (raw vs staging, jointure sur la vraie clé,
+requêtés en direct via tunnel SSH — jamais fabriqués).
+
+**Erreur de mesure trouvée et corrigée avant publication** (même
+discipline que les faux positifs de housekeeping) : le "~8 % d'encodage
+suspect" documenté depuis la Phase 4 pour Marketing confondait le taux de
+*tirage* du générateur (`rng.random() < 0.08` dans `generer_evenements.py`)
+avec le taux de défaut *visible* — le bug (round-trip UTF-8→latin1) ne
+produit un texte corrompu que sur un nom déjà accentué. Mesuré précisément :
+8,5 % des 200 noms canoniques ont un accent, 8 % subissent le tirage,
+l'intersection donne **0 occurrence visible** (0/206, confirmé en base).
+Corrigé dans `avant.md`/`apres.md`/`decisions.md` du domaine Marketing.
+
+**Captures réelles ajoutées** (`docs/screenshots/`) : pgHero (Overview +
+Space, vraies tables du projet), graphe de lineage dbt docs complet
+(généré via tunnel SSH, servi en statique, capturé par Playwright).
+
+**2. Les 3 workflows n8n réellement importés, credentialés et publiés**
+(pas seulement exportés en JSON, l'état où ils étaient restés depuis les
+Phases 2-4). Import via copier-coller du JSON directement sur le canvas
+n8n (`Ctrl+V`, l'app détecte un workflow JSON valide dans le presse-papier
+— pas d'API n8n disponible sans clé, pas de bouton "Import from File"
+trouvé dans cette version). Credential SSH "VPS Projet 19" créée par
+Valentin lui-même dans l'UI n8n (le classificateur auto-mode de Claude
+Code bloque toute commande qui établirait cette connexion avec un mot de
+passe VPS en clair — attribution des nœuds faite ensuite via l'API interne
+`/rest/*` de n8n, qui exige un en-tête `browser-id` en plus du cookie de
+session, trouvé en interceptant une vraie requête du frontend). Les 3
+workflows publiés (`● Published`), testés manuellement avec succès sur
+leur chaîne "pull" (schedule trigger) ; la chaîne "push" (webhook) de
+Marketing reste non testée manuellement par nature (un test "Execute"
+sur un nœud webhook attend un vrai appel HTTP entrant, se déclenchera au
+premier événement réel du SaaS mock).
+
+**3. Vrai DAG dbt construit pour Airflow — trou trouvé en vérifiant.**
+En vérifiant l'état de l'infra Airflow, `airflow/dags/` ne contenait
+toujours que `healthcheck.py` (placeholder de la Phase 1, son propre
+commentaire disait "à remplacer dès la Phase 2" — jamais fait). Corrigé :
+- `airflow/Dockerfile` (nouveau) : étend `apache/airflow:2.10.3-python3.12`
+  avec `dbt-core==1.12.0`/`dbt-postgres==1.11.0` installés dans l'image
+  (pas `_PIP_ADDITIONAL_REQUIREMENTS`, qui réinstallerait à chaque
+  démarrage de conteneur) — même discipline que l'image `projet19-ingestion`.
+- `airflow/docker-compose.yml` : conteneurs connectés au réseau
+  `entrepot_default` (même pattern que pgHero) pour joindre
+  `projet19-postgres` par nom de service ; variables `PGHOST`/`PGPORT`/
+  `PGUSER`/`PGPASSWORD`/`PGDATABASE`/`PGSSLMODE` injectées pour
+  `dbt/profiles.yml`, rôle `dbt_transform` (même mot de passe que
+  `docs/housekeeping/.env`).
+- `airflow/dags/dbt_pipeline.py` (nouveau, remplace `healthcheck.py`) :
+  `dbt seed` → `dbt snapshot` → `dbt run` → `dbt test` → `dbt docs generate`,
+  quotidien à 5h UTC (après les 3 ingestions n8n de 2h/3h/4h).
+
+**2 bugs réels trouvés et corrigés avant de déclarer le DAG fonctionnel**
+(jamais supposé, toujours vérifié en exécutant pour de vrai) :
+1. Premier essai avec le décorateur `@task.bash` de la TaskFlow API,
+   appelé comme `task.bash(task_id=..., cwd=...)(commande_string)` —
+   invalide : ce décorateur attend une **fonction Python** qui *retourne*
+   la commande, pas une chaîne passée directement. `AttributeError:
+   'str' object has no attribute '__annotations__'` au chargement du DAG.
+   Corrigé en repassant sur `BashOperator` classique, plus direct pour ce
+   cas.
+2. `PermissionError: [Errno 13] Permission denied: '/opt/dbt/logs/dbt.log'`
+   au premier vrai run : le conteneur Airflow tourne en `uid 50000`
+   (`AIRFLOW_UID`), qui n'a pas le droit d'écrire dans `dbt/logs/` sur le
+   volume monté depuis le poste hôte (`../dbt:/opt/dbt`, appartenant à
+   l'utilisateur du poste). Corrigé avec `--log-path`/`--target-path`
+   pointés hors du volume partagé (`/tmp/dbt_logs`, `/tmp/dbt_target`) —
+   dbt n'a pas besoin d'écrire dans le répertoire source versionné.
+
+**Vérifié réellement, pas juste "le code semble correct"** : chaque tâche
+testée individuellement (`airflow tasks test`) puis le DAG complet
+déclenché de bout en bout (`airflow dags trigger`) via la CLI Airflow
+dans le conteneur (pas besoin du mot de passe UI, rotationné par Valentin
+et non partagé) — `state: success`, **24 modèles, 3 snapshots, 51/51
+tests, 1 seed, catalogue généré**, contre l'entrepôt réel.
+
 ## Statut du projet
 
-Phases 1 à 7 terminées et vérifiées. Il ne reste que la Phase 8
-(optionnelle, Hermès Agent — en standby).
+Phases 1 à 7 terminées et vérifiées, complétées par un DAG dbt de
+production réel et les 3 workflows n8n effectivement actifs (pas
+seulement exportés). Il ne reste que la Phase 8 (optionnelle, Hermès
+Agent — en standby).

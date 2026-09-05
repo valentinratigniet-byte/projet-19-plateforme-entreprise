@@ -22,7 +22,8 @@ du raisonnement dans l'[issue #2](https://github.com/valentinratigniet-byte/vale
   `role_direction` sur les lignes, **restriction colonne sur l'IBAN**
   (nouveauté vs Ventes) — **8/8 cas vérifiés** par `SET ROLE` +
   tentative de lecture réelle.
-- **Workflow n8n** — export prêt (`n8n/finance-compta-ingestion-workflow.json`).
+- **Workflow n8n** — importé, publié, credentialé et **exécuté avec
+  succès** dans l'instance n8n réelle (`n8n/finance-compta-ingestion-workflow.json`).
 
 ## Pipeline (schéma réel, étape par étape)
 
@@ -64,8 +65,9 @@ flowchart LR
     T["⏰ Tous les jours à 3h\n(Schedule Trigger)"] --> N["🔧 Ingestion SQL Server + CSV + Factur-X\n→ raw.finance_* (SSH)"]
 ```
 
-Export prêt, import manuel dans n8n restant (même contrainte que
-Ventes/Commerce).
+**Importé, credentialé et publié** dans l'instance n8n réelle, **exécution
+manuelle vérifiée avec succès**. Tourne automatiquement tous les jours à
+3h.
 
 ## Trouvaille phare
 

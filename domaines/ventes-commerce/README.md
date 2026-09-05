@@ -22,8 +22,9 @@ versions concurrentes).
 - **RLS multi-rôles** (`role_rh`/`role_finance`/`role_direction`/
   `role_commercial`) — **8/8 cas vérifiés par `SET ROLE`**, survit aux
   reruns dbt (post_hook).
-- **Workflow n8n** — export prêt (`n8n/ventes-commerce-ingestion-workflow.json`),
-  import manuel restant.
+- **Workflow n8n** — importé et **publié** dans l'instance n8n réelle
+  (partagée avec le Projet 18), credential SSH réelle attachée, **exécution
+  manuelle réussie** (ingestion AS/400+Excel confirmée).
 
 ## Pipeline (schéma réel, étape par étape)
 
@@ -76,9 +77,11 @@ flowchart LR
     T["⏰ Tous les jours à 2h\n(Schedule Trigger)"] --> N["🔧 Ingestion AS/400 + Excel\n→ raw.ventes_* (SSH)"]
 ```
 
-Export prêt, **import manuel dans n8n restant** (pas de clé API n8n en
-main pour l'automatiser — même contrainte que le déploiement initial de
-n8n au Projet 18, cf. `docs/guide-realisation.md`).
+**Importé, credentialé et publié dans l'instance n8n réelle** (partagée
+avec le Projet 18) — import via copier-coller du JSON directement sur le
+canvas (pas d'API n8n disponible sans clé, import UI natif à la place),
+credential SSH réelle créée et attachée, **exécution manuelle vérifiée
+avec succès**. Tourne maintenant automatiquement tous les jours à 2h.
 
 ## Documentation
 
