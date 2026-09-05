@@ -340,6 +340,47 @@ quotidien (représente le canal "push" du SaaS, cohérent avec le mock).
 ## Les 3 domaines sont terminés
 
 Ventes/Commerce (Phase 2), Finance/Compta (Phase 3), Marketing/Activité
-(Phase 4) sont tous construits, vérifiés et documentés. Prochaine étape :
-Phase 5 (consolidation constellation + dictionnaire global + analyse
-transverse, livrable obligatoire du cadrage).
+(Phase 4) sont tous construits, vérifiés et documentés.
+
+## Phase 5 — Consolidation constellation + analyse transverse
+
+**Constellation réelle** : `marts.dim_date` (calendaire, 2025-12 à
+2026-09) partagée entre les 3 domaines — `fait_ventes`, `fait_ecritures`,
+`fait_envois` s'y rattachent par valeur de date, pas de surrogate key
+ajoutée aux faits déjà vérifiés (aurait obligé à les reconstruire pour un
+gain marginal).
+
+**Bug de config rencontré** : le premier `dbt seed` a échoué
+(`permission denied for schema raw`) — le seed (budget hypothèse) allait
+par défaut dans `raw`, schéma que `dbt_transform` ne possède pas.
+Corrigé en configurant `seeds: +schema: marts` dans `dbt_project.yml` —
+un seed vit à côté des marts qui le consomment, ce n'est pas une source
+ingérée.
+
+**`docs/analyse-transverse.md` — le livrable obligatoire du cadrage,
+écrit** :
+- **Écart Prix/Volume** (méthode Projet 15, réutilisée directement) sur
+  les vraies données `fait_ventes` face à un budget hypothèse labellisée
+  (dbt seed `budget_ventes_2026.csv`) — écart volume massivement
+  favorable à partir d'avril, écart prix volatil, cohérent avec les
+  données déjà documentées dans `domaines/ventes-commerce/apres.md`.
+- **Recherche de corrélation marketing → ventes — résultat honnête :
+  aucune trouvée.** Les clics marketing oscillent sans tendance (25 à
+  37/mois) pendant que le CA Ventes croît de +169 % — pas un échec de
+  l'analyse, une vraie découverte : **les domaines Ventes et Marketing
+  n'ont aucune entité commune** (clients AS/400 B2B ≠ contacts CRM
+  marketing), donc aucune causalité n'est mesurable dans ce modèle en
+  l'état. Recommandation posée : une dimension "tiers" partagée serait
+  le vrai prochain chantier de consolidation, pas encore fait.
+- `dbt docs generate` vérifié fonctionnel (catalogue + lineage sur 24
+  modèles/3 snapshots/51 tests/12 sources) — le dictionnaire global
+  promis, pas dupliqué à la main.
+
+**51/51 tests dbt du projet entier passent** (24 modèles, 3 snapshots,
+1 seed, 12 sources).
+
+## Statut du projet
+
+Phases 1 à 5 terminées et vérifiées. Reste au phasage : Phase 6
+(housekeeping transverse), Phase 7 (Filiation branché), Phase 8
+(optionnelle, Hermès Agent — en standby).
