@@ -152,10 +152,11 @@ jobs:
           dbt run
           dbt test
 
-      - name: Completer le GRANT marketing (schema marts, cree par dbt run juste au-dessus)
+      - name: Completer les GRANT USAGE sur marts (schema cree par dbt run juste au-dessus)
         env:
           PGPASSWORD: ${{ env.PG_SUPERUSER_PASSWORD }}
         run: |
+          psql -h localhost -p 5440 -U postgres -d projet19 -v ON_ERROR_STOP=1 -f entrepot/grants_marts_partages.sql
           psql -h localhost -p 5440 -U postgres -d projet19 -v ON_ERROR_STOP=1 -c "GRANT USAGE ON SCHEMA marts TO role_marketing;"
 
       - name: Verifier la RLS reellement (SET ROLE, 3 domaines)

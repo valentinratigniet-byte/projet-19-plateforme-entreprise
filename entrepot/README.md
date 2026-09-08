@@ -41,6 +41,13 @@ cp .env.example .env   # remplir avec de vraies valeurs, jamais commit
 docker compose up -d
 ```
 
+Une fois le tout premier `dbt run` termine (schema `marts` cree), rejouer
+`grants_marts_partages.sql` — sans lui, `role_rh`/`role_finance`/
+`role_direction`/`role_commercial` ont bien un `GRANT SELECT` par table
+(post_hook des modeles) mais pas l'acces au schema lui-meme, cf.
+commentaire en tete du fichier (piege reel decouvert en reconstruisant le
+pipeline depuis zero).
+
 `init/01_schema_raw.sql` + `init/02_extensions.sql` (pg_trgm) +
 `init/03_roles_partages.sql` s'exécutent au premier démarrage — les
 placeholders de mot de passe doivent être substitués avant le premier
