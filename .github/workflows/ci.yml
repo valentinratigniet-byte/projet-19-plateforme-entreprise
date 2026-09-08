@@ -1,0 +1,162 @@
+name: CI
+
+# Rejoue en local (sur le runner GitHub) le pipeline reellement deploye sur
+# le VPS/Coolify : entrepot Postgres + les 3 sources reelles des domaines
+# (SQL Server, MySQL, mock SaaS) -- pas de simulation partielle. Mots de
+# passe ci-dessous valables uniquement le temps du run (conteneurs jetables),
+# jamais ceux utilises en production.
+
+on:
+  push:
+  pull_request:
+
+env:
+  PG_SUPERUSER_PASSWORD: ci-superuser-pw
+  INGESTION_PASSWORD: ci-ingestion-pw
+  DBT_PASSWORD: ci-dbt-pw
+  SA_PASSWORD: "CIpassw0rd!2026"
+  MYSQL_ROOT_PASSWORD: ci-mysql-pw
+  SAAS_CLIENT_SECRET: ci-saas-secret
+
+jobs:
+  plateforme-entreprise:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installer les dependances (ingestion + dbt + saas-mock)
+        run: |
+          pip install -r ingestion/requirements.txt dbt-postgres
+          pip install -r domaines/marketing-activite/saas-mock/requirements.txt
+
+      - name: Substituer les mots de passe placeholders (entrepot/init)
+        run: |
+          sed -i "s/__INGESTION_PASSWORD__/${INGESTION_PASSWORD}/" entrepot/init/01_schema_raw.sql
+          sed -i "s/__DBT_PASSWORD__/${DBT_PASSWORD}/" entrepot/init/01_schema_raw.sql
+
+      - name: Demarrer l'entrepot (Postgres)
+        working-directory: entrepot
+        env:
+          PG_SUPERUSER: postgres
+        run: docker compose up -d --wait --wait-timeout 60
+
+      - name: Demarrer la source Finance (SQL Server)
+        working-directory: domaines/finance-compta/source
+        run: docker compose up -d --wait --wait-timeout 180
+
+      - name: Demarrer la source Marketing (MySQL)
+        working-directory: domaines/marketing-activite/source
+        run: docker compose up -d --wait --wait-timeout 120
+
+      - name: Peupler SQL Server (fournisseurs + ecritures)
+        working-directory: domaines/finance-compta/source
+        env:
+          MSSQL_HOST: localhost
+          MSSQL_PORT: "1433"
+        run: python simulateur_sqlserver.py
+
+      - name: Peupler MySQL (contacts + campagnes + envois)
+        working-directory: domaines/marketing-activite/source
+        env:
+          MYSQL_HOST: localhost
+          MYSQL_PORT: "3306"
+        run: python simulateur_mysql.py
+
+      - name: Demarrer le mock SaaS marketing
+        working-directory: domaines/marketing-activite/saas-mock
+        env:
+          SAAS_CLIENT_ID: projet19
+        run: |
+          docker compose up -d --build
+          for i in $(seq 1 20); do
+            curl -sf http://localhost:5000/health && exit 0
+            sleep 2
+          done
+          echo "mock SaaS jamais devenu pret" >&2
+          exit 1
+
+      - name: Creer les roles RLS specifiques aux domaines (Ventes, Marketing)
+        env:
+          PGPASSWORD: ${{ env.PG_SUPERUSER_PASSWORD }}
+        run: |
+          psql -h localhost -p 5440 -U postgres -d projet19 -v ON_ERROR_STOP=1 -f domaines/ventes-commerce/rls.sql
+          psql -h localhost -p 5440 -U postgres -d projet19 -v ON_ERROR_STOP=1 -f domaines/marketing-activite/rls.sql
+
+      - name: Ingerer le domaine Ventes/Commerce (AS/400 + Excel, deja committes)
+        working-directory: domaines/ventes-commerce
+        env:
+          PYTHONPATH: ${{ github.workspace }}/ingestion
+          PGHOST: localhost
+          PGPORT: "5440"
+          PGDATABASE: projet19
+          PGUSER: ingestion
+          PGPASSWORD: ${{ env.INGESTION_PASSWORD }}
+        run: python ingestion.py
+
+      - name: Ingerer le domaine Finance/Compta (SQL Server + CSV + Factur-X)
+        working-directory: domaines/finance-compta
+        env:
+          PYTHONPATH: ${{ github.workspace }}/ingestion
+          PGHOST: localhost
+          PGPORT: "5440"
+          PGDATABASE: projet19
+          PGUSER: ingestion
+          PGPASSWORD: ${{ env.INGESTION_PASSWORD }}
+          MSSQL_HOST: localhost
+          MSSQL_PORT: "1433"
+        run: python ingestion.py
+
+      - name: Ingerer le domaine Marketing/Activite (MySQL + JSON + API SaaS)
+        working-directory: domaines/marketing-activite
+        env:
+          PYTHONPATH: ${{ github.workspace }}/ingestion
+          PGHOST: localhost
+          PGPORT: "5440"
+          PGDATABASE: projet19
+          PGUSER: ingestion
+          PGPASSWORD: ${{ env.INGESTION_PASSWORD }}
+          MYSQL_HOST: localhost
+          MYSQL_PORT: "3306"
+          SAAS_BASE_URL: http://localhost:5000
+          SAAS_CLIENT_ID: projet19
+        run: python ingestion.py
+
+      - name: dbt seed + snapshot + run + test (staging -> marts, RLS en post_hook)
+        working-directory: dbt
+        env:
+          DBT_PROFILES_DIR: .
+          PGHOST: localhost
+          PGPORT: "5440"
+          PGUSER: dbt_transform
+          PGPASSWORD: ${{ env.DBT_PASSWORD }}
+          PGDATABASE: projet19
+          PGSSLMODE: prefer
+        run: |
+          dbt seed
+          dbt snapshot
+          dbt run
+          dbt test
+
+      - name: Verifier la RLS reellement (SET ROLE, 3 domaines)
+        env:
+          PGHOST: localhost
+          PGPORT: "5440"
+          PGDATABASE: projet19
+          PGSUPERUSER: postgres
+          PGSUPERUSER_PASSWORD: ${{ env.PG_SUPERUSER_PASSWORD }}
+        run: |
+          python domaines/ventes-commerce/test_rls.py
+          python domaines/finance-compta/test_rls.py
+          python domaines/marketing-activite/test_rls.py
+
+      - name: Verifier les 4 mecanismes SaaS (polling, refresh OAuth2, webhook, reverse ETL)
+        working-directory: domaines/marketing-activite
+        env:
+          PYTHONPATH: ${{ github.workspace }}/ingestion
+          SAAS_BASE_URL: http://localhost:5000
+          SAAS_CLIENT_ID: projet19
+        run: python test_saas_integration.py
