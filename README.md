@@ -1,5 +1,7 @@
 # Projet 19 — Plateforme data d'entreprise multi-domaines
 
+[![CI](https://github.com/valentinratigniet-byte/projet-19-plateforme-entreprise/actions/workflows/ci.yml/badge.svg)](https://github.com/valentinratigniet-byte/projet-19-plateforme-entreprise/actions/workflows/ci.yml)
+
 > **🚧 En construction — Phases 1 à 7 terminées (infra, les 3 domaines, consolidation + analyse transverse, housekeeping, Filiation branché). Phase 8 (Hermès Agent) optionnelle, en standby.** Cadrage complet dans
 > l'issue [valentinratigniet-byte/valentinratigniet-byte#2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
 > (architecture, intérêt par poste cible, doctrine, phasage) — source de
