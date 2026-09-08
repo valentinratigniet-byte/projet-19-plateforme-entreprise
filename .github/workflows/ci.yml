@@ -52,6 +52,12 @@ jobs:
         working-directory: domaines/marketing-activite/source
         run: docker compose up -d --wait --wait-timeout 120
 
+      - name: Generer les sources synthetiques (gitignorees, deterministes -- seed fixe)
+        run: |
+          cd domaines/ventes-commerce/source && python simulateur_as400.py && python simulateur_excel_remises.py && cd -
+          cd domaines/finance-compta/source && python generer_evenements.py && python simulateur_csv_banque.py && python simulateur_facturx.py && cd -
+          cd domaines/marketing-activite/source && python generer_evenements.py && python simulateur_evenements_json.py && cd -
+
       - name: Peupler SQL Server (fournisseurs + ecritures)
         working-directory: domaines/finance-compta/source
         env:
