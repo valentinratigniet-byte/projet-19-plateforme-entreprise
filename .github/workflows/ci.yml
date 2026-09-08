@@ -171,6 +171,28 @@ jobs:
           python domaines/finance-compta/test_rls.py
           python domaines/marketing-activite/test_rls.py
 
+      - name: Demarrer un recepteur de webhook (equivalent CI du conteneur webhook-echo manuel, cf. docs/guide-realisation.md)
+        # Le mock SaaS appelle webhook-echo:5001 depuis SON reseau Docker
+        # (celui cree par le docker-compose de saas-mock) -- le recepteur
+        # doit donc etre un conteneur sur ce meme reseau, pas un process
+        # cote hote (les deux ne partagent pas la resolution DNS).
+        run: |
+          NETWORK=$(docker network ls --filter name=saas-mock --format '{{.Name}}' | head -1)
+          docker run -d --rm --name webhook-echo --network "$NETWORK" python:3.12-slim python3 -c '
+          from http.server import BaseHTTPRequestHandler, HTTPServer
+          class H(BaseHTTPRequestHandler):
+              def do_POST(self):
+                  self.send_response(200)
+                  self.end_headers()
+              def log_message(self, *a): pass
+          HTTPServer(("0.0.0.0", 5001), H).serve_forever()
+          '
+          for i in $(seq 1 15); do
+            docker exec projet19-saas-mock python3 -c "import urllib.request; urllib.request.urlopen('http://webhook-echo:5001/', data=b'', timeout=2)" && exit 0
+            sleep 1
+          done
+          echo "recepteur webhook jamais joignable depuis le mock SaaS" >&2; exit 1
+
       - name: Verifier les 4 mecanismes SaaS (polling, refresh OAuth2, webhook, reverse ETL)
         working-directory: domaines/marketing-activite
         env:
