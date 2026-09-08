@@ -63,6 +63,7 @@ jobs:
         env:
           MSSQL_HOST: localhost
           MSSQL_PORT: "1433"
+          MSSQL_SA_PASSWORD: ${{ env.SA_PASSWORD }}
         run: python simulateur_sqlserver.py
 
       - name: Peupler MySQL (contacts + campagnes + envois)
@@ -114,6 +115,7 @@ jobs:
           PGPASSWORD: ${{ env.INGESTION_PASSWORD }}
           MSSQL_HOST: localhost
           MSSQL_PORT: "1433"
+          MSSQL_SA_PASSWORD: ${{ env.SA_PASSWORD }}
         run: python ingestion.py
 
       - name: Ingerer le domaine Marketing/Activite (MySQL + JSON + API SaaS)
