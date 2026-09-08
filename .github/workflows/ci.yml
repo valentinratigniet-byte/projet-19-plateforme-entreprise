@@ -87,11 +87,14 @@ jobs:
           exit 1
 
       - name: Creer les roles RLS specifiques aux domaines (Ventes, Marketing)
+        # Le GRANT USAGE ON SCHEMA marts de marketing/rls.sql doit attendre
+        # que dbt ait cree le schema marts (etape suivante) -- seul le
+        # CREATE ROLE (necessaire aux post_hook de "dbt run") est fait ici.
         env:
           PGPASSWORD: ${{ env.PG_SUPERUSER_PASSWORD }}
         run: |
           psql -h localhost -p 5440 -U postgres -d projet19 -v ON_ERROR_STOP=1 -f domaines/ventes-commerce/rls.sql
-          psql -h localhost -p 5440 -U postgres -d projet19 -v ON_ERROR_STOP=1 -f domaines/marketing-activite/rls.sql
+          psql -h localhost -p 5440 -U postgres -d projet19 -v ON_ERROR_STOP=1 -c "CREATE ROLE role_marketing NOLOGIN;"
 
       - name: Ingerer le domaine Ventes/Commerce (AS/400 + Excel, deja committes)
         working-directory: domaines/ventes-commerce
@@ -148,6 +151,12 @@ jobs:
           dbt snapshot
           dbt run
           dbt test
+
+      - name: Completer le GRANT marketing (schema marts, cree par dbt run juste au-dessus)
+        env:
+          PGPASSWORD: ${{ env.PG_SUPERUSER_PASSWORD }}
+        run: |
+          psql -h localhost -p 5440 -U postgres -d projet19 -v ON_ERROR_STOP=1 -c "GRANT USAGE ON SCHEMA marts TO role_marketing;"
 
       - name: Verifier la RLS reellement (SET ROLE, 3 domaines)
         env:
