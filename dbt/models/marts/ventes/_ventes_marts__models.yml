@@ -8,9 +8,35 @@ models:
         tests: [not_null, unique]
 
   - name: fait_ventes
-    description: "Une ligne = une commande. Remise appliquée si rapprochement client fiable, sinon montant net = montant HT."
+    description: "Une ligne = une commande. Remise appliquée si rapprochement client fiable, sinon montant net = montant HT. Incremental sur _ingested_at."
+    config:
+      contract: {enforced: true}
     columns:
       - name: cmdnum
+        data_type: text
         tests: [not_null, unique]
+      - name: clicod
+        data_type: text
+      - name: date_commande
+        data_type: date
+      - name: artcod
+        data_type: text
+      - name: qte_commandee
+        data_type: integer
+      - name: prix_unitaire_eur
+        data_type: numeric
+      - name: montant_ht_eur
+        data_type: numeric
+      - name: remise_pct
+        data_type: numeric
       - name: montant_net_eur
+        data_type: numeric
         tests: [not_null]
+      - name: statut
+        data_type: text
+      - name: client_connu
+        data_type: boolean
+      - name: _source_file
+        data_type: text
+      - name: _ingested_at
+        data_type: timestamp with time zone

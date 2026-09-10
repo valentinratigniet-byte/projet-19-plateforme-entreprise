@@ -8,9 +8,25 @@ models:
         tests: [not_null, unique]
 
   - name: fait_envois
+    description: "Une ligne = un envoi. Contrat de schéma figé (consommé par la connectique BI)."
+    config:
+      contract: {enforced: true}
     columns:
       - name: envoi_id
+        data_type: integer
         tests: [not_null, unique]
+      - name: contact_id
+        data_type: integer
+      - name: contact_connu
+        data_type: boolean
+      - name: campagne_id
+        data_type: integer
+      - name: campagne_nom
+        data_type: text
+      - name: date_envoi
+        data_type: date
+      - name: statut
+        data_type: text
 
   - name: fait_evenements_web
     columns:

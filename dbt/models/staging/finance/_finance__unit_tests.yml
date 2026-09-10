@@ -1,0 +1,18 @@
+version: 2
+
+unit_tests:
+  - name: ut_stg_finance_fournisseurs_siren_normalisation
+    description: >
+      SIREN normalise (espaces supprimes) et valide (9 chiffres),
+      invalide flague plutot que rejete. Rejoue l'exemple reel de la
+      présentation (SIREN "200 524 117") plus un cas invalide.
+    model: stg_finance_fournisseurs
+    given:
+      - input: source('raw', 'finance_fournisseurs')
+        rows:
+          - {FournisseurID: "15", RaisonSociale: "Dupont SARL", SIREN: "200 524 117", IBAN: "FR7630006000011234567890189"}
+          - {FournisseurID: "99", RaisonSociale: "Fournisseur Test", SIREN: "12A45", IBAN: "FR7630006000011234567890189"}
+    expect:
+      rows:
+        - {fournisseur_id: 15, siren_normalise: "200524117", siren_valide: true}
+        - {fournisseur_id: 99, siren_normalise: "12A45", siren_valide: false}

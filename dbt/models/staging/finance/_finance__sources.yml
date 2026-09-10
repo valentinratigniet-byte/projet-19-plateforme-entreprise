@@ -6,9 +6,25 @@ sources:
     tables:
       - name: finance_fournisseurs
         description: "Copie brute des fournisseurs SQL Server (état courant complet, remplacé à chaque run)."
+        loaded_at_field: _ingested_at
+        freshness:
+          warn_after: {count: 1, period: day}
+          error_after: {count: 2, period: day}
       - name: finance_ecritures
         description: "Copie brute des écritures comptables SQL Server (état courant complet, remplacé à chaque run)."
+        loaded_at_field: _ingested_at
+        freshness:
+          warn_after: {count: 1, period: day}
+          error_after: {count: 2, period: day}
       - name: finance_releve_bancaire
         description: "Copie brute des relevés bancaires CSV mensuels (append)."
+        loaded_at_field: _ingested_at
+        freshness:
+          warn_after: {count: 1, period: day}
+          error_after: {count: 3, period: day}
       - name: finance_factures_recues
         description: "Copie brute des factures fournisseurs reçues, Factur-X + non structurées (append, colonne `canal`)."
+        loaded_at_field: _ingested_at
+        freshness:
+          warn_after: {count: 1, period: day}
+          error_after: {count: 2, period: day}

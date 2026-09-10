@@ -8,10 +8,31 @@ models:
         tests: [not_null, unique]
 
   - name: fait_ecritures
-    description: "Écritures comptables, une ligne par écriture (dédoublonnée)."
+    description: "Écritures comptables, une ligne par écriture (dédoublonnée). Incremental sur ecriture_id."
+    config:
+      contract: {enforced: true}
     columns:
       - name: ecriture_id
+        data_type: integer
         tests: [not_null, unique]
+      - name: fournisseur_id
+        data_type: integer
+      - name: fournisseur_connu
+        data_type: boolean
+      - name: numero_facture
+        data_type: text
+      - name: date_ecriture
+        data_type: date
+      - name: montant_ht_eur
+        data_type: numeric
+      - name: taux_tva
+        data_type: numeric
+      - name: montant_ttc_eur
+        data_type: numeric
+      - name: compte_comptable
+        data_type: text
+      - name: statut_paiement
+        data_type: text
 
   - name: fait_rapprochement_factures
     description: "Rapprochement factures reçues <-> écritures comptables, par SIREN + montant (pas par numéro, numérotations non partagées entre sources)."

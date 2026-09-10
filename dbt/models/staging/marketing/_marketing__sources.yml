@@ -6,11 +6,31 @@ sources:
     tables:
       - name: marketing_contacts
         description: "Copie brute des contacts MySQL (état courant complet, remplacé à chaque run)."
+        loaded_at_field: _ingested_at
+        freshness:
+          warn_after: {count: 1, period: day}
+          error_after: {count: 2, period: day}
       - name: marketing_campagnes
         description: "Copie brute des campagnes MySQL."
+        loaded_at_field: _ingested_at
+        freshness:
+          warn_after: {count: 1, period: day}
+          error_after: {count: 2, period: day}
       - name: marketing_envois
         description: "Copie brute des envois MySQL (état courant complet)."
+        loaded_at_field: _ingested_at
+        freshness:
+          warn_after: {count: 1, period: day}
+          error_after: {count: 2, period: day}
       - name: marketing_evenements_web
         description: "Copie brute du flux JSON événementiel (append, aplati à l'ingestion)."
+        loaded_at_field: _ingested_at
+        freshness:
+          warn_after: {count: 1, period: day}
+          error_after: {count: 2, period: day}
       - name: marketing_stats_saas
         description: "Copie brute des stats de campagnes récupérées par polling OAuth2 sur l'API SaaS (état courant)."
+        loaded_at_field: _ingested_at
+        freshness:
+          warn_after: {count: 1, period: day}
+          error_after: {count: 2, period: day}

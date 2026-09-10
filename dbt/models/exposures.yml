@@ -1,0 +1,42 @@
+version: 2
+
+# Consommateurs formels des marts, pour que dbt docs montre le lineage
+# jusqu'au bout de la chaine -- pas seulement jusqu'au dernier modele dbt.
+#
+# Un seul consommateur reellement branche a ce jour (Filiation, Phase 7
+# du cadrage, terminee le 2026-09-05 -- scan additif read-only via
+# scan_database.py --merge, cf. README). Power BI et Metabase sont prets
+# cote entrepot (marts + RLS deja exposes, "aucune configuration
+# supplementaire requise" -- docs/analyse-transverse.md) mais aucun
+# classeur/dashboard n'est reellement connecte pour ce projet a ce jour :
+# ne pas les declarer ici tant que ce n'est pas vrai (meme discipline
+# "mesure, pas invente" que le reste du portfolio).
+
+exposures:
+  - name: filiation_lineage
+    label: "Filiation -- lignage inter-systèmes"
+    type: application
+    maturity: high
+    url: "https://github.com/valentinratigniet-byte/projet-14-filiation"
+    description: >
+      Documentation vivante de traçabilité (projet 14). Scanne le schéma
+      marts en lecture seule (scan_database.py --merge, via tunnel SSH)
+      et l'intègre au graphe de lignage global aux côtés des 6 autres
+      systèmes déjà branchés. Pas de connexion live tenue en continu :
+      un rafraîchissement déclenché, pas un flux permanent.
+    owner:
+      name: "Valentin Ratigniet"
+      email: "valentinratigniet@gmail.com"
+    depends_on:
+      - ref('dim_client')
+      - ref('fait_ventes')
+      - ref('dim_fournisseur')
+      - ref('fait_ecritures')
+      - ref('fait_rapprochement_factures')
+      - ref('dim_contact')
+      - ref('fait_envois')
+      - ref('fait_evenements_web')
+      - ref('fait_performance_campagnes')
+      - ref('dim_date')
+      - ref('ecart_budget_ventes')
+      - ref('synthese_mensuelle_transverse')

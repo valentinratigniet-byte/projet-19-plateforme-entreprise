@@ -8,8 +8,20 @@
   acces, role_finance/role_direction tout (reconciliation budgetaire).
 #}
 
+{#
+  Incremental sur _ingested_at (colonne de tracabilite du writer commun,
+  cf. ingestion/adaptateurs/postgres_writer.py) : ventes_commandes est
+  une source "cumulee" (append cote AS/400), pas un etat courant remplace
+  -- une nouvelle extraction n'apporte que des lignes _ingested_at plus
+  recentes que le dernier run materialise.
+#}
+
 {{
     config(
+        materialized='incremental',
+        unique_key='cmdnum',
+        incremental_strategy='delete+insert',
+        on_schema_change='fail',
         post_hook=[
             "ALTER TABLE {{ this }} ENABLE ROW LEVEL SECURITY",
             "GRANT SELECT ON {{ this }} TO role_rh, role_finance, role_direction, role_commercial",
@@ -52,3 +64,7 @@ select
 
 from commandes cmd
 left join clients cl on cmd.clicod = cl.clicod
+
+{% if is_incremental() %}
+where cmd._ingested_at > (select coalesce(max(_ingested_at), '1900-01-01'::timestamp) from {{ this }})
+{% endif %}

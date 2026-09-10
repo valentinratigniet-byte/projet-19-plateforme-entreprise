@@ -1,0 +1,21 @@
+version: 2
+
+unit_tests:
+  - name: ut_stg_ventes_commandes_date_as400_fallback
+    description: >
+      CMDDAT AS/400 : format YYYYMMDD tente en premier, repli DDMMYYYY
+      si l'annee n'est pas plausible (derive constatee sur 2 mois du brut,
+      cf. avant.md). Rejoue l'exemple reel de la presentation (dérive du
+      25/03/2026) plus un cas au format nominal.
+    model: stg_ventes_commandes
+    given:
+      - input: source('raw', 'ventes_commandes')
+        rows:
+          - {CLICOD: "CL000072", CMDNUM: "2026030000", CMDDAT: "25032026", ARTCOD: "ART01", QTECMD: "1", PRIXUN: "1000", MTTHT: "1000", STCMD: "VAL", _source_file: "test", _ingested_at: "2026-03-25 00:00:00"}
+          - {CLICOD: "CL000072", CMDNUM: "2026030001", CMDDAT: "20260315", ARTCOD: "ART01", QTECMD: "1", PRIXUN: "1000", MTTHT: "1000", STCMD: "VAL", _source_file: "test", _ingested_at: "2026-03-15 00:00:00"}
+      - input: ref('stg_ventes_clients')
+        rows: []
+    expect:
+      rows:
+        - {cmdnum: "2026030000", date_commande: "2026-03-25", date_format_derive: true}
+        - {cmdnum: "2026030001", date_commande: "2026-03-15", date_format_derive: false}

@@ -6,7 +6,19 @@ sources:
     tables:
       - name: ventes_clients
         description: "Copie brute de l'export clients AS/400 (dernier mois, remplacé à chaque run)."
+        loaded_at_field: _ingested_at
+        freshness:
+          warn_after: {count: 1, period: day}
+          error_after: {count: 2, period: day}
       - name: ventes_commandes
         description: "Copie brute de l'export commandes AS/400 (append, tous les mois cumulés)."
+        loaded_at_field: _ingested_at
+        freshness:
+          warn_after: {count: 1, period: day}
+          error_after: {count: 2, period: day}
       - name: ventes_remises
         description: "Copie brute des 2 fichiers Excel de remises (v3 + v4_FINAL), tels quels."
+        loaded_at_field: _ingested_at
+        freshness:
+          warn_after: {count: 7, period: day}
+          error_after: {count: 14, period: day}

@@ -1,0 +1,19 @@
+version: 2
+
+unit_tests:
+  - name: ut_stg_marketing_contacts_mojibake
+    description: >
+      nom_encodage_suspect flague les noms portant la signature d'un bug
+      de charset MySQL reel (sequences "Ã..."), sans reparation
+      automatique -- signalement assume, pas de rattrapage silencieux
+      (cf. decisions.md).
+    model: stg_marketing_contacts
+    given:
+      - input: source('raw', 'marketing_contacts')
+        rows:
+          - {id: "1", email: "Jean.Dupont@Example.com", prenom: "Jean", nom: "DUPONT", date_creation: "2026-01-10"}
+          - {id: "2", email: "eleonore@example.com", prenom: "Eleonore", nom: "Ã‰lÃ©onore", date_creation: "2026-01-11"}
+    expect:
+      rows:
+        - {contact_id: 1, email_normalise: "jean.dupont@example.com", nom_encodage_suspect: false}
+        - {contact_id: 2, email_normalise: "eleonore@example.com", nom_encodage_suspect: true}
