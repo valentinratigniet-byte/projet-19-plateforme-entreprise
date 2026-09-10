@@ -222,5 +222,7 @@ la précédente :
 ---
 
 Voir aussi : [`guide-realisation.md`](guide-realisation.md) (le journal
-complet, phase par phase) et [`outils.md`](outils.md) (chaque outil,
-pourquoi ce choix, comment il est déclenché).
+complet, phase par phase), [`dbt-possibilites-integrations.md`](dbt-possibilites-integrations.md)
+(dbt en général, en partant de zéro — progiciels génériques, intégrations,
+possibilités au-delà de ce projet) et [`outils.md`](outils.md) (chaque
+outil, pourquoi ce choix, comment il est déclenché).

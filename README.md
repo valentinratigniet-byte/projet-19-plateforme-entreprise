@@ -549,14 +549,20 @@ non filtrés...), dans
 pour le détail complet de chaque brique. Il ne reste que la Phase 8
 (optionnelle, Hermès Agent) — en standby.
 
-Deux lectures complémentaires : [`docs/construction-etl-erp-dbt.md`](docs/construction-etl-erp-dbt.md)
+Trois lectures complémentaires : [`docs/construction-etl-erp-dbt.md`](docs/construction-etl-erp-dbt.md)
 reprend ce même guide sous 3 angles transversaux (ETL, ERP, dbt) plutôt
 que phase par phase, avec un ordre de construction recommandé si c'était
-à refaire ; [`docs/outils.md`](docs/outils.md) liste chaque outil utilisé
-— lien officiel, tâche, pourquoi ce choix plutôt qu'une alternative,
-comment il est concrètement déclenché — et les règles transverses qui
-s'appliquent indépendamment de l'outil (lecture seule sur toute source
-externe, idempotence vérifiée en relançant, RLS posée en `post_hook`...).
+à refaire ; [`docs/dbt-possibilites-integrations.md`](docs/dbt-possibilites-integrations.md)
+prend du recul sur dbt lui-même — en partant de zéro — pour situer ce
+projet dans l'écosystème dbt réel : connexions génériques aux progiciels
+(ERP/CRM/e-commerce), intégrations (orchestrateurs, CI/CD, BI, IDE,
+catalogues tiers) et possibilités au-delà de ce projet (macros, packages,
+seeds, environnements, portabilité multi-entrepôt) ; [`docs/outils.md`](docs/outils.md)
+liste chaque outil utilisé — lien officiel, tâche, pourquoi ce choix
+plutôt qu'une alternative, comment il est concrètement déclenché — et les
+règles transverses qui s'appliquent indépendamment de l'outil (lecture
+seule sur toute source externe, idempotence vérifiée en relançant, RLS
+posée en `post_hook`...).
 
 ---
 
