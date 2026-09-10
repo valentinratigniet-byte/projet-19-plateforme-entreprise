@@ -57,6 +57,25 @@ def ajouter_lignes(conn, schema, table, lignes, source_file):
 > script d'ingestion avant de le considérer fini — la plupart des bugs
 > d'ETL ne se voient qu'au deuxième passage, jamais au premier.
 
+**Avant / après, mesuré — domaine Ventes/Commerce (AS/400 + Excel)**
+(détail complet et méthode : [`avant.md`](../domaines/ventes-commerce/avant.md) /
+[`apres.md`](../domaines/ventes-commerce/apres.md)) :
+
+| Indicateur | Avant | Après |
+|---|---|---|
+| Clients | 314 (28 doublons non résolus) | 314 (doublons flagués, visibles) |
+| Commandes | 2320 (dates sur 2 formats, statuts en 7 variantes) | 2320 (1 format, 3 statuts + `INCONNU`) |
+| Chiffre d'affaires HT | non calculable (montants en centimes-texte) | **15 092 645,63 €** |
+| Remises rattachées à un client AS/400 | 0 (aucune clé commune) | 3 sur 16 (19 %), avec confiance mesurée |
+
+**Constat honnête** : le rapprochement flou (`pg_trgm`) ne rattache que 3
+des 16 remises négociées avec un niveau de confiance jugé fiable — pas un
+échec du pipeline, une vraie limite du rapprochement par nom révélée
+plutôt que masquée. Les 13 remises restantes n'affectent pas
+`fait_ventes` (pas de remise fantôme appliquée), mais restent
+concrètement non exploitées côté pilotage tant qu'un `CLICOD` n'est pas
+saisi à la source.
+
 ## 2. ERP — la source qu'on ne touche jamais
 
 Deux systèmes se comportent comme un vrai ERP : SQL Server (Finance/Compta,
@@ -113,6 +132,26 @@ exclue.
 > garde aucun historique lui-même ; c'est au pipeline de le faire, sur la
 > donnée la plus brute possible.
 
+**Avant / après, mesuré — domaine Finance/Compta (l'ERP SQL Server)**
+(détail complet et méthode : [`avant.md`](../domaines/finance-compta/avant.md) /
+[`apres.md`](../domaines/finance-compta/apres.md)) :
+
+| Indicateur | Avant | Après |
+|---|---|---|
+| Fournisseurs | 80 (1 SIREN invalide/absent) | 80 (SIREN normalisé et flagué) |
+| Écritures comptables | 866 (11 doublons de saisie exacts inclus) | **855** (doublons supprimés) |
+| Montant TTC total | non calculable (2 formats texte FR/US) | **7 240 138,82 €** |
+| Factures rattachées à une écriture — canal Factur-X (structuré) | — | **91 % (387/426)** |
+| Factures rattachées à une écriture — canal non structuré (PDF/OCR) | — | **44 % (190/428)** |
+| Accès à l'IBAN fournisseur | non contrôlé | `role_finance` uniquement (colonne restreinte) |
+
+**Constat honnête** : l'écart 91 % vs 44 % n'est pas un artefact du
+pipeline — c'est une mesure directe du **coût réel du papier/PDF non
+structuré** : le canal non structuré perd le SIREN dans 60 % des cas et
+produit un montant illisible dans 15 % des cas. Un argument chiffré
+concret pour prioriser la migration Factur-X des fournisseurs restants,
+pas une intuition.
+
 ## 3. dbt — cinq couches, les pièges qui reviennent
 
 Le détail pas-à-pas complet (snapshot → staging → marts → tests → docs)
@@ -133,6 +172,40 @@ retient les pièges dbt qui ne sont *pas* spécifiques à un domaine.
 > succès — relancer `dbt snapshot` une 2ᵉ fois sans changement de donnée
 > doit produire `INSERT 0 0`, sinon le SCD2 ne fonctionne pas réellement,
 > même si la commande n'a rien retourné en erreur.
+
+### Captures réelles — `dbt docs generate`, entrepôt local rechargé pour l'occasion
+
+Pas la production (l'entrepôt de prod n'est volontairement pas exposé sur
+Internet, cf. Phase 7 du guide de réalisation) — un entrepôt Postgres
+local reconstruit spécifiquement pour vérifier ces fonctionnalités avant
+de les documenter.
+
+![dbt docs — nouvelle page d'accueil (overview.md)](screenshots/dbtdocs-overview.png)
+
+*Page d'accueil du catalogue dbt, avant vide, maintenant un vrai doc
+block qui explique comment lire le projet — sources avec freshness,
+contrats, modèles incrémentaux, tests unitaires, exposures.*
+
+![dbt docs — fait_ventes, contrat de schéma + incremental](screenshots/dbtdocs-contract-fait-ventes.png)
+
+*`fait_ventes` : badge "incremental" et "CONTRACT: Enforced" lus
+directement dans le manifest après un run réel, 13 colonnes typées. C'est
+en vérifiant cette page qu'un vrai `dbt run` a détecté `_ingested_at`
+déclaré `TIMESTAMP` au lieu de `TIMESTAMPTZ` — corrigé avant cette
+capture, pas après.*
+
+![dbt docs — fait_ecritures, même garantie côté Finance](screenshots/dbtdocs-contract-fait-ecritures.png)
+
+*Même principe sur le domaine Finance/Compta — contrat de schéma et
+incremental (curseur `ecriture_id`, pas `_ingested_at` : voir la partie
+ERP ci-dessus pour pourquoi).*
+
+![dbt docs — exposure Filiation](screenshots/dbtdocs-exposure-filiation.png)
+
+*Un seul consommateur déclaré en aval : Filiation, réellement branché
+(Phase 7). Power BI et Metabase sont prêts côté entrepôt mais pas
+réellement connectés à ce projet à ce jour — volontairement absents de
+cette page plutôt qu'inventés.*
 
 ## Ordre de construction, si c'était à refaire
 
