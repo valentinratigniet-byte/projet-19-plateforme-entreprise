@@ -9,6 +9,7 @@
   revalider juste apres un run reel a plus de sens qu'a intervalle fixe)."""
 
 import json
+import os
 import urllib.request
 from datetime import datetime
 
@@ -17,7 +18,13 @@ from airflow.operators.bash import BashOperator
 
 DBT_DIR = "/opt/dbt"
 DBT_FLAGS = "--profiles-dir . --project-dir . --log-path /tmp/dbt_logs --target-path /tmp/dbt_target"
-N8N_BASE = "https://n8n-tbgietry5lj93vrnsibihqdr.76.13.43.130.sslip.io/webhook"
+# Lue depuis l'environnement du conteneur (docker-compose.yml) -- jamais
+# committee en dur, meme raison que les mots de passe PG*/AIRFLOW_*.
+# .get() avec defaut vide plutot que os.environ[...] : une variable
+# manquante ne doit jamais empecher Airflow de PARSER le DAG (les 2 appels
+# webhook plus bas sont deja best-effort -- try/except et "|| true" --,
+# une URL vide echoue proprement de la meme facon, elle ne casse rien).
+N8N_BASE = os.environ.get("N8N_WEBHOOK_BASE_URL", "")
 
 
 def notifier_echec(context) -> None:
