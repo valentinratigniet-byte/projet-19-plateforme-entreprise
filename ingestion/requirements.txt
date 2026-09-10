@@ -9,4 +9,4 @@ sqlalchemy==2.0.36
 pyyaml==6.0.2
 sqlglot==25.32.1
 pymongo==4.18.1
-firebird-driver==2.0.3
+firebird-driver==1.10.11
