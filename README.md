@@ -79,6 +79,88 @@ standby, Phase 8 optionnelle** — les nœuds `HERMES` ci-dessous représentent
 ce qui sera branché *si* cette phase se fait, pas ce qui existe dès la
 Phase 1.
 
+**Vue simplifiée, un schéma par domaine** (le détail technique complet de
+chacun vit dans `domaines/<domaine>/README.md`) :
+
+**🛒 Ventes/Commerce**
+
+```mermaid
+flowchart LR
+    classDef source fill:#6c757d,stroke:#495057,color:#ffffff
+    classDef adapter fill:#E4A93C,stroke:#b8842a,color:#1a1a1a
+    classDef staging fill:#137A8B,stroke:#0d5866,color:#ffffff
+    classDef dwh fill:#2FA36B,stroke:#1f7a51,color:#ffffff
+
+    V1["AS/400 (DB2 for i)<br/>export batch fichier plat"]:::source --> VA["Adaptateur fichier plat"]:::adapter --> VR["raw.ventes (brut)"]:::source --> VS["stg_ventes (net)"]:::staging --> DWH1["Entrepôt constellation"]:::dwh
+```
+
+**💶 Finance/Compta**
+
+```mermaid
+flowchart LR
+    classDef source fill:#6c757d,stroke:#495057,color:#ffffff
+    classDef adapter fill:#E4A93C,stroke:#b8842a,color:#1a1a1a
+    classDef staging fill:#137A8B,stroke:#0d5866,color:#ffffff
+    classDef dwh fill:#2FA36B,stroke:#1f7a51,color:#ffffff
+
+    F1["SQL Server"]:::source --> FA1["Adaptateur SQL Server"]:::adapter --> FR["raw.finance (brut)"]:::source
+    F2["CSV relevés bancaires"]:::source --> FA2["Adaptateur CSV"]:::adapter --> FR
+    FR --> FS["stg_finance (net)"]:::staging --> DWH2["Entrepôt constellation"]:::dwh
+```
+
+**📣 Marketing/Activité**
+
+```mermaid
+flowchart LR
+    classDef source fill:#6c757d,stroke:#495057,color:#ffffff
+    classDef adapter fill:#E4A93C,stroke:#b8842a,color:#1a1a1a
+    classDef staging fill:#137A8B,stroke:#0d5866,color:#ffffff
+    classDef dwh fill:#2FA36B,stroke:#1f7a51,color:#ffffff
+
+    M1["MySQL"]:::source --> MA1["Adaptateur MySQL"]:::adapter --> MR["raw.marketing (brut)"]:::source
+    M2["Flux JSON événementiel"]:::source --> MA2["Adaptateur JSON"]:::adapter --> MR
+    M3a["API SaaS<br/>OAuth2 - webhook + polling"]:::source --> MA3["Adaptateur API REST paginée"]:::adapter --> MR
+    MR --> MS["stg_marketing (net)"]:::staging --> DWH3["Entrepôt constellation"]:::dwh
+```
+
+**Entrepôt → Exploitation → Gouvernance** (commun aux 3 domaines)
+
+```mermaid
+flowchart TD
+    classDef adapter fill:#E4A93C,stroke:#b8842a,color:#1a1a1a
+    classDef dwh fill:#2FA36B,stroke:#1f7a51,color:#ffffff
+    classDef hermes fill:#D9534F,stroke:#a83a36,color:#ffffff
+    classDef doc fill:#e9ecef,stroke:#adb5bd,color:#1a1a1a,stroke-dasharray: 4 3
+
+    DWH["Entrepôt - modèle constellation<br/>dimensions partagées + faits multiples"]:::dwh
+
+    subgraph EXPLOIT["Exploitation"]
+        direction TB
+        RLS["RLS multi-rôles<br/>RH / Finance / Direction / métier"]:::dwh --> BI["Power BI + Metabase"]:::dwh
+        ANALYSE["Analyse transverse<br/>campagne -> ventes -> écart budgétaire"]:::dwh --> BI
+        FIL["Filiation (lignage)"]:::dwh
+    end
+
+    DWH --> RLS
+    DWH --> ANALYSE
+    DWH --> FIL
+    DWH -- "segment calculé" --> REV["Reverse ETL"]:::adapter -.-> M3["API SaaS Marketing"]:::adapter
+
+    subgraph GOUV["Gouvernance transverse"]
+        direction LR
+        DOC["decisions.md + regles-transformation.md<br/>par domaine"]:::doc
+        HERMES["Hermès Agent"]:::hermes
+    end
+
+    DOC -. "documente chaque domaine + l'entrepôt" .-> DWH
+    DOC -. "enrichit" .-> FIL
+    HERMES -. "surveille fraîcheur/dbt/RLS/bloat" .-> DWH
+    HERMES -. "surveille externe quota/panne SaaS" .-> M3
+```
+
+<details>
+<summary><strong>🖼️ Vue complète, une seule image</strong> — pour présentation (tous les domaines + exploitation + gouvernance ensemble)</summary>
+
 ```mermaid
 flowchart TD
     classDef source fill:#6c757d,stroke:#495057,color:#ffffff
@@ -120,7 +202,7 @@ flowchart TD
     DWH --> RLS
     DWH --> ANALYSE
     DWH --> FIL
-    DWH -.segment calculé.-> REV["Reverse ETL"]:::adapter -.-> M3
+    DWH -- "segment calculé" --> REV["Reverse ETL"]:::adapter -.-> M3
 
     subgraph GOUV["Gouvernance transverse"]
         direction LR
@@ -128,17 +210,17 @@ flowchart TD
         HERMES["Hermès Agent"]:::hermes
     end
 
-    DOC -.documente chaque domaine + l'entrepôt.-> DOM_V
+    DOC -- "documente chaque domaine + l'entrepôt" --> DOM_V
     DOC -.-> DOM_F
     DOC -.-> DOM_M
     DOC -.-> DWH
-    DOC -.enrichit.-> FIL
+    DOC -- "enrichit" --> FIL
 
-    HERMES -.surveille interne fraîcheur/dbt/RLS/bloat.-> DOM_V
+    HERMES -- "surveille fraîcheur/dbt/RLS/bloat" --> DOM_V
     HERMES -.-> DOM_F
     HERMES -.-> DOM_M
     HERMES -.-> DWH
-    HERMES -.surveille externe quota/panne SaaS.-> M3
+    HERMES -- "surveille externe quota/panne SaaS" --> M3
 
     subgraph LEGEND["🔑 Légende"]
         direction LR
@@ -152,6 +234,8 @@ flowchart TD
 
     DOM_M ~~~ LEGEND
 ```
+
+</details>
 
 </details>
 
