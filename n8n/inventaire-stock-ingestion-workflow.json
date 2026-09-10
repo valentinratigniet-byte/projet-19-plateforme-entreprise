@@ -1,0 +1,55 @@
+{
+  "name": "Projet 19 - Ingestion Inventaire Stock",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 1 * * *" }
+          ]
+        }
+      },
+      "id": "trigger-quotidien",
+      "name": "Tous les jours a 1h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "command": "bash /opt/projet19/domaines/inventaire-stock/run_ingestion.sh"
+      },
+      "id": "ssh-ingestion",
+      "name": "Ingestion Firebird -> raw.stock_articles/stock_mouvements",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": {
+        "sshPassword": { "id": "A_CONFIGURER", "name": "VPS Projet 19" }
+      }
+    },
+    {
+      "parameters": {
+        "command": "bash /opt/projet19/airflow/declencher_dag.sh"
+      },
+      "id": "ssh-declencher-dag",
+      "name": "Declencher dbt_pipeline (Airflow)",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "credentials": {
+        "sshPassword": { "id": "A_CONFIGURER", "name": "VPS Projet 19" }
+      }
+    }
+  ],
+  "connections": {
+    "Tous les jours a 1h": {
+      "main": [[{ "node": "Ingestion Firebird -> raw.stock_articles/stock_mouvements", "type": "main", "index": 0 }]]
+    },
+    "Ingestion Firebird -> raw.stock_articles/stock_mouvements": {
+      "main": [[{ "node": "Declencher dbt_pipeline (Airflow)", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

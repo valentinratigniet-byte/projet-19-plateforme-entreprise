@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: stg_stock_articles
+    description: "Articles de l'entrepôt Firebird."
+    columns:
+      - name: article_id
+        tests: [not_null, unique]
+
+  - name: stg_stock_mouvements
+    description: "Mouvements de stock Firebird, dédoublonnés (double-scan physique)."
+    columns:
+      - name: mouvement_id
+        tests: [not_null, unique]
+      - name: type_mouvement
+        tests:
+          - accepted_values:
+              values: ["ENTREE", "SORTIE", "INVENTAIRE"]
+      - name: source_mouvement
+        tests:
+          - accepted_values:
+              values: ["SCANNER", "MANUEL", "SYNC"]

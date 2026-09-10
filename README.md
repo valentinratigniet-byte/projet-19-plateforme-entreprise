@@ -137,7 +137,21 @@ flowchart LR
     T1["MongoDB<br/>tickets SAV (JSON)"]:::source --> TA["Adaptateur MongoDB"]:::adapter --> TR["raw.support_tickets<br/>(document JSON brut)"]:::source --> TS["stg_support_tickets<br/>(aplati ::jsonb / ->>)"]:::staging --> DWH4["Entrepôt constellation"]:::dwh
 ```
 
-**Entrepôt → Exploitation → Gouvernance** (commun aux 4 domaines)
+**📦 Inventaire/Stock** (5ᵉ domaine — SGBD embarqué, pas un document
+store ni un ERP classique ; détail complet dans
+[`domaines/inventaire-stock/README.md`](domaines/inventaire-stock/README.md))
+
+```mermaid
+flowchart LR
+    classDef source fill:#6c757d,stroke:#495057,color:#ffffff
+    classDef adapter fill:#E4A93C,stroke:#b8842a,color:#1a1a1a
+    classDef staging fill:#137A8B,stroke:#0d5866,color:#ffffff
+    classDef dwh fill:#2FA36B,stroke:#1f7a51,color:#ffffff
+
+    S1["Firebird<br/>articles + mouvements"]:::source --> SA["Adaptateur Firebird"]:::adapter --> SR["raw.stock_articles<br/>raw.stock_mouvements"]:::source --> SS["stg_stock_* <br/>(dédoublonné)"]:::staging --> DWH5["Entrepôt constellation"]:::dwh
+```
+
+**Entrepôt → Exploitation → Gouvernance** (commun aux 5 domaines)
 
 ```mermaid
 flowchart TD

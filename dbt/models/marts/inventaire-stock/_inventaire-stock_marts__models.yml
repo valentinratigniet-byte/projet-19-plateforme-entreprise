@@ -1,0 +1,19 @@
+version: 2
+
+models:
+  - name: dim_stock_articles
+    description: "Articles entrepôt, avec flags stock négatif / sous seuil de réapprovisionnement."
+    columns:
+      - name: article_id
+        tests: [not_null, unique]
+
+  - name: fait_mouvements_stock
+    description: "Mouvements de stock (entrées/sorties/inventaires), dédoublonnés en amont."
+    columns:
+      - name: mouvement_id
+        tests: [not_null, unique]
+      - name: article_id
+        tests:
+          - relationships:
+              to: ref('dim_stock_articles')
+              field: article_id

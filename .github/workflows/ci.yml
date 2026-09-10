@@ -1,10 +1,10 @@
 name: CI
 
 # Rejoue en local (sur le runner GitHub) le pipeline reellement deploye sur
-# le VPS/Coolify : entrepot Postgres + les 3 sources reelles des domaines
-# (SQL Server, MySQL, mock SaaS) -- pas de simulation partielle. Mots de
-# passe ci-dessous valables uniquement le temps du run (conteneurs jetables),
-# jamais ceux utilises en production.
+# le VPS/Coolify : entrepot Postgres + les sources reelles des domaines
+# (SQL Server, MySQL, MongoDB, Firebird, mock SaaS) -- pas de simulation
+# partielle. Mots de passe ci-dessous valables uniquement le temps du run
+# (conteneurs jetables), jamais ceux utilises en production.
 
 on:
   push:
@@ -18,6 +18,7 @@ env:
   MYSQL_ROOT_PASSWORD: ci-mysql-pw
   SAAS_CLIENT_SECRET: ci-saas-secret
   MONGO_ROOT_PASSWORD: ci-mongo-pw
+  FIREBIRD_ROOT_PASSWORD: ci-firebird-pw
 
 jobs:
   plateforme-entreprise:
@@ -28,6 +29,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Installer libfbclient2 (bibliotheque cliente native requise par firebird-driver, cf. ingestion/Dockerfile)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libfbclient2
 
       - name: Installer les dependances (ingestion + dbt + saas-mock)
         run: |
@@ -55,6 +59,10 @@ jobs:
 
       - name: Demarrer la source Support Client (MongoDB)
         working-directory: domaines/support-client/source
+        run: docker compose up -d --wait --wait-timeout 120
+
+      - name: Demarrer la source Inventaire/Stock (Firebird)
+        working-directory: domaines/inventaire-stock/source
         run: docker compose up -d --wait --wait-timeout 120
 
       - name: Generer les sources synthetiques (gitignorees, deterministes -- seed fixe)
@@ -86,6 +94,14 @@ jobs:
           MONGO_ROOT_PASSWORD: ${{ env.MONGO_ROOT_PASSWORD }}
         run: python simulateur_mongodb.py
 
+      - name: Peupler Firebird (articles + mouvements de stock)
+        working-directory: domaines/inventaire-stock/source
+        env:
+          FIREBIRD_HOST: localhost
+          FIREBIRD_PORT: "3050"
+          FIREBIRD_ROOT_PASSWORD: ${{ env.FIREBIRD_ROOT_PASSWORD }}
+        run: python simulateur_firebird.py
+
       - name: Demarrer le mock SaaS marketing
         working-directory: domaines/marketing-activite/saas-mock
         env:
@@ -99,7 +115,7 @@ jobs:
           echo "mock SaaS jamais devenu pret" >&2
           exit 1
 
-      - name: Creer les roles RLS specifiques aux domaines (Ventes, Marketing, Support Client)
+      - name: Creer les roles RLS specifiques aux domaines (Ventes, Marketing, Support Client, Inventaire/Stock)
         # Le GRANT USAGE ON SCHEMA marts de marketing/rls.sql doit attendre
         # que dbt ait cree le schema marts (etape suivante) -- seul le
         # CREATE ROLE (necessaire aux post_hook de "dbt run") est fait ici.
@@ -109,6 +125,7 @@ jobs:
           psql -h localhost -p 5440 -U postgres -d projet19 -v ON_ERROR_STOP=1 -f domaines/ventes-commerce/rls.sql
           psql -h localhost -p 5440 -U postgres -d projet19 -v ON_ERROR_STOP=1 -c "CREATE ROLE role_marketing NOLOGIN;"
           psql -h localhost -p 5440 -U postgres -d projet19 -v ON_ERROR_STOP=1 -f domaines/support-client/rls.sql
+          psql -h localhost -p 5440 -U postgres -d projet19 -v ON_ERROR_STOP=1 -f domaines/inventaire-stock/rls.sql
 
       - name: Ingerer le domaine Ventes/Commerce (AS/400 + Excel, deja committes)
         working-directory: domaines/ventes-commerce
@@ -164,6 +181,20 @@ jobs:
           MONGO_ROOT_PASSWORD: ${{ env.MONGO_ROOT_PASSWORD }}
         run: python ingestion.py
 
+      - name: Ingerer le domaine Inventaire/Stock (Firebird)
+        working-directory: domaines/inventaire-stock
+        env:
+          PYTHONPATH: ${{ github.workspace }}/ingestion
+          PGHOST: localhost
+          PGPORT: "5440"
+          PGDATABASE: projet19
+          PGUSER: ingestion
+          PGPASSWORD: ${{ env.INGESTION_PASSWORD }}
+          FIREBIRD_HOST: localhost
+          FIREBIRD_PORT: "3050"
+          FIREBIRD_ROOT_PASSWORD: ${{ env.FIREBIRD_ROOT_PASSWORD }}
+        run: python ingestion.py
+
       - name: dbt seed + snapshot + run + test (staging -> marts, RLS en post_hook)
         working-directory: dbt
         env:
@@ -187,7 +218,7 @@ jobs:
           psql -h localhost -p 5440 -U postgres -d projet19 -v ON_ERROR_STOP=1 -f entrepot/grants_marts_partages.sql
           psql -h localhost -p 5440 -U postgres -d projet19 -v ON_ERROR_STOP=1 -c "GRANT USAGE ON SCHEMA marts TO role_marketing;"
 
-      - name: Verifier la RLS reellement (SET ROLE, 4 domaines)
+      - name: Verifier la RLS reellement (SET ROLE, 5 domaines)
         env:
           PGHOST: localhost
           PGPORT: "5440"
@@ -199,6 +230,7 @@ jobs:
           python domaines/finance-compta/test_rls.py
           python domaines/marketing-activite/test_rls.py
           python domaines/support-client/test_rls.py
+          python domaines/inventaire-stock/test_rls.py
 
       - name: Demarrer un recepteur de webhook (equivalent CI du conteneur webhook-echo manuel, cf. docs/guide-realisation.md)
         # Le mock SaaS appelle webhook-echo:5001 depuis SON reseau Docker

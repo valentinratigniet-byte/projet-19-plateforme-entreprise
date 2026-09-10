@@ -2,12 +2,12 @@
 -> docs. Remplace le placeholder healthcheck.py (Phase 1).
 
 Declenchement double, pas un choix entre les deux :
-- EVENEMENTIEL -- chacun des 4 workflows d'ingestion n8n appelle l'API
+- EVENEMENTIEL -- chacun des 5 workflows d'ingestion n8n appelle l'API
   Airflow (POST /dags/dbt_pipeline/dagRuns) des qu'il termine. dbt peut
   donc demarrer quelques minutes apres la derniere ingestion du jour,
   au lieu d'attendre systematiquement 5h UTC.
 - PLANIFIE -- le cron 5h UTC reste actif en filet de securite (n8n hors
-  service, appel API rate, etc.) : les 4 domaines ont largement fini a
+  service, appel API rate, etc.) : les 5 domaines ont largement fini a
   cette heure-la de toute facon.
 Les deux chemins passent par la meme porte (`attendre_tous_les_domaines`)
 pour ne jamais lancer dbt sur une donnee partielle -- un declenchement
@@ -47,14 +47,14 @@ N8N_BASE = os.environ.get("N8N_WEBHOOK_BASE_URL", "")
 # legitimement n'avoir "rien de nouveau" un jour donne (cf.
 # docs/construction-etl-erp-dbt.md#cdc), ce qui ne veut pas dire que
 # l'ingestion Finance n'a pas tourne.
-TABLES_TEMOINS = ["ventes_commandes", "finance_ecritures", "marketing_contacts", "support_tickets"]
+TABLES_TEMOINS = ["ventes_commandes", "finance_ecritures", "marketing_contacts", "support_tickets", "stock_mouvements"]
 
 
 def _tous_domaines_ingeres_aujourdhui() -> bool:
     """Porte d'entree du DAG (ShortCircuitOperator) : ne laisse dbt
     demarrer que si (1) un run n'a pas deja REELLEMENT execute dbt
     aujourd'hui -- evite de le rejouer en double si plusieurs domaines
-    declenchent le DAG le meme jour -- et (2) les 4 domaines ont une
+    declenchent le DAG le meme jour -- et (2) les 5 domaines ont une
     donnee fraiche du jour. Un retour False n'est pas un echec : le
     declenchement suivant (un autre domaine, ou le cron 5h UTC) retentera
     normalement.
