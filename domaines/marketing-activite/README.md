@@ -47,7 +47,7 @@ flowchart LR
     SNAP --> STG["staging.stg_marketing_*\n5 modèles"]:::clean
     STG --> MARTS["marts.dim_contact\nmarts.fait_envois / fait_evenements_web\nmarts.fait_performance_campagnes"]:::clean
     MARTS --> RLS["RLS minimisation d'accès\n9/9 SET ROLE vérifiés"]:::clean
-    MARTS -.segment calculé.-> REV["Reverse ETL\n124 contacts engagés"]:::step -.-> S3
+    MARTS -. "segment calculé" .-> REV["Reverse ETL\n124 contacts engagés"]:::step -.-> S3
 ```
 
 **Nettoyage réel, ligne par ligne** (extraction directe de l'entrepôt,
