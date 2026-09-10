@@ -88,18 +88,6 @@ flowchart TD
     classDef hermes fill:#D9534F,stroke:#a83a36,color:#ffffff
     classDef doc fill:#e9ecef,stroke:#adb5bd,color:#1a1a1a,stroke-dasharray: 4 3
 
-    subgraph LEGEND["🔑 Légende"]
-        direction LR
-        L1["Source brute"]:::source
-        L2["Adaptateur (n8n)"]:::adapter
-        L3["Staging net (dbt)"]:::staging
-        L4["Entrepôt & Exploitation"]:::dwh
-        L5["Hermès Agent"]:::hermes
-        L6["Documentation"]:::doc
-    end
-
-    LEGEND ~~~ DOM_V
-
     subgraph DOM_V["🛒 Ventes/Commerce"]
         direction TB
         V1["AS/400 (DB2 for i)\nexport batch fichier plat"]:::source --> VA["Adaptateur fichier plat"]:::adapter --> VR["raw.ventes (brut)"]:::source --> VS["stg_ventes (net)"]:::staging
@@ -134,13 +122,35 @@ flowchart TD
     DWH --> FIL
     DWH -.segment calculé.-> REV["Reverse ETL"]:::adapter -.-> M3
 
-    DOC["decisions.md + regles-transformation.md\npar domaine"]:::doc -.documente.-> DOM_V & DOM_F & DOM_M
-    DOC -.documente.-> DWH
+    subgraph GOUV["Gouvernance transverse"]
+        direction LR
+        DOC["decisions.md + regles-transformation.md\npar domaine"]:::doc
+        HERMES["Hermès Agent"]:::hermes
+    end
+
+    DOC -.documente chaque domaine + l'entrepôt.-> DOM_V
+    DOC -.-> DOM_F
+    DOC -.-> DOM_M
+    DOC -.-> DWH
     DOC -.enrichit.-> FIL
 
-    HERMES["Hermès Agent"]:::hermes -.surveille interne fraîcheur/dbt/RLS/bloat.-> DOM_V & DOM_F & DOM_M
+    HERMES -.surveille interne fraîcheur/dbt/RLS/bloat.-> DOM_V
+    HERMES -.-> DOM_F
+    HERMES -.-> DOM_M
     HERMES -.-> DWH
     HERMES -.surveille externe quota/panne SaaS.-> M3
+
+    subgraph LEGEND["🔑 Légende"]
+        direction LR
+        L1["Source brute"]:::source
+        L2["Adaptateur (n8n)"]:::adapter
+        L3["Staging net (dbt)"]:::staging
+        L4["Entrepôt & Exploitation"]:::dwh
+        L5["Hermès Agent"]:::hermes
+        L6["Documentation"]:::doc
+    end
+
+    DOM_M ~~~ LEGEND
 ```
 
 </details>
