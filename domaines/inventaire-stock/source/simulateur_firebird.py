@@ -87,11 +87,23 @@ def creer_tables(con) -> None:
     con.commit()
 
 
+def _tronquer_utf8(texte: str, max_octets: int) -> str:
+    """Tronque en OCTETS UTF-8, pas en caracteres Python -- LIBELLE est un
+    VARCHAR(60) mesure en octets (bug reel rencontre en CI : un
+    catch_phrase() francais avec accents tronque a 60 caracteres Python
+    peut peser 61 octets une fois encode, "string right truncation" cote
+    Firebird)."""
+    octets = texte.encode("utf-8")
+    if len(octets) <= max_octets:
+        return texte
+    return octets[:max_octets].decode("utf-8", "ignore")
+
+
 def generer_articles(rng: random.Random) -> list[dict]:
     return [
         {
             "artcod": art,
-            "libelle": fake.catch_phrase()[:60],
+            "libelle": _tronquer_utf8(fake.catch_phrase(), 60),
             "emplacement": rng.choice(EMPLACEMENTS),
             "seuil_reappro": rng.randint(10, 50),
         }
@@ -159,6 +171,7 @@ def main() -> None:
     import os
 
     rng = random.Random(19)
+    Faker.seed(19)
     con = connecter(
         os.environ.get("FIREBIRD_HOST", "projet19-firebird"),
         int(os.environ.get("FIREBIRD_PORT", "3050")),
