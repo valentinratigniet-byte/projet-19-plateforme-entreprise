@@ -6,6 +6,9 @@ services:
       ACCEPT_EULA: "Y"
       MSSQL_PID: Developer
       MSSQL_SA_PASSWORD: ${SA_PASSWORD}
+      # SQL Server Agent -- requis pour le job de capture CDC (sys.sp_cdc_enable_table) :
+      # sans lui, les tables de changement restent vides, aucune erreur ne le signale.
+      MSSQL_AGENT_ENABLED: "true"
     volumes:
       - sqlserver-data:/var/opt/mssql
     ports:

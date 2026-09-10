@@ -13,6 +13,16 @@ Ventes/Commerce :
   - ~2% des ecritures avec un FournisseurID orphelin (saisie manuelle
     erronee, pas dans le meme referentiel que les evenements)
   - ~1.5% de doublons de saisie comptable exacts (double-clic reel)
+
+CDC (Change Data Capture) active sur dbo.Fournisseurs : contrairement a
+EcrituresComptables (recree a chaque run -- un flux d'evenements, pas
+une fiche qui se modifie), Fournisseurs n'est cree et peuple qu'au
+PREMIER lancement -- les lancements suivants appliquent de VRAIES
+UPDATE/INSERT sur la table existante (changement d'IBAN, renommage...),
+exactement ce qu'un CDC a besoin de voir passer dans le journal de
+transactions pour avoir quelque chose a capturer. La relancer detruite
+a chaque fois (comme avant) aurait rendu le CDC muet -- DROP TABLE
+desactive la capture, il n'y aurait jamais eu de changement a lire.
 """
 
 from __future__ import annotations
@@ -44,12 +54,24 @@ def creer_schema(conn):
         cur.execute("IF DB_ID('finance_compta') IS NULL CREATE DATABASE finance_compta")
 
 
-def creer_tables(conn):
+def fournisseurs_deja_crees(conn) -> bool:
+    with conn.cursor() as cur:
+        cur.execute("USE finance_compta")
+        cur.execute("SELECT OBJECT_ID('dbo.Fournisseurs', 'U')")
+        return cur.fetchone()[0] is not None
+
+
+def creer_table_fournisseurs_si_absente(conn) -> bool:
+    """Jamais de DROP ici (contrairement a EcrituresComptables) -- une
+    fiche fournisseur doit survivre entre deux lancements pour que le CDC
+    ait de vrais changements a capturer. Renvoie True si la table vient
+    d'etre creee (= premier lancement, chargement initial a faire)."""
+    if fournisseurs_deja_crees(conn):
+        return False
     with conn.cursor() as cur:
         cur.execute("USE finance_compta")
         cur.execute(
             """
-            IF OBJECT_ID('dbo.Fournisseurs', 'U') IS NOT NULL DROP TABLE dbo.Fournisseurs;
             CREATE TABLE dbo.Fournisseurs (
                 FournisseurID INT PRIMARY KEY,
                 RaisonSociale NVARCHAR(100),
@@ -58,6 +80,12 @@ def creer_tables(conn):
             )
             """
         )
+    return True
+
+
+def creer_table_ecritures(conn):
+    with conn.cursor() as cur:
+        cur.execute("USE finance_compta")
         cur.execute(
             """
             IF OBJECT_ID('dbo.EcrituresComptables', 'U') IS NOT NULL DROP TABLE dbo.EcrituresComptables;
@@ -74,6 +102,70 @@ def creer_tables(conn):
             )
             """
         )
+
+
+def activer_cdc(conn) -> None:
+    """Idempotent : sp_cdc_enable_table renvoie une erreur si deja
+    activee, on la tolere. Necessite SQL Server Agent actif
+    (MSSQL_AGENT_ENABLED=true) -- c'est le job qu'il lance qui deverse
+    le journal de transactions dans les tables de changement ; sans lui
+    aucune erreur ne le signale, les tables de changement restent juste
+    vides indefiniment."""
+    with conn.cursor() as cur:
+        cur.execute("USE finance_compta")
+        cur.execute("SELECT is_cdc_enabled FROM sys.databases WHERE name = 'finance_compta'")
+        if not cur.fetchone()[0]:
+            cur.execute("EXEC sys.sp_cdc_enable_db")
+        cur.execute(
+            "SELECT 1 FROM cdc.change_tables WHERE capture_instance = 'dbo_Fournisseurs'"
+        )
+        if cur.fetchone() is None:
+            cur.execute(
+                "EXEC sys.sp_cdc_enable_table @source_schema=N'dbo', "
+                "@source_name=N'Fournisseurs', @role_name=NULL, @supports_net_changes=1"
+            )
+
+
+def simuler_maj_fournisseurs(conn, rng: random.Random) -> int:
+    """Lancements suivants (table deja peuplee) : quelques fournisseurs
+    changent reellement (IBAN, raison sociale -- fusion/rachat), plus une
+    petite chance d'un nouveau fournisseur. Ce sont ces UPDATE/INSERT,
+    pas le chargement initial, que le CDC est cense capturer."""
+    from faker import Faker
+
+    fake = Faker("fr_FR")
+    with conn.cursor() as cur:
+        cur.execute("USE finance_compta")
+        cur.execute("SELECT FournisseurID FROM dbo.Fournisseurs")
+        ids = [r[0] for r in cur.fetchall()]
+
+    if not ids:
+        return 0
+
+    n_maj = max(1, len(ids) // 20)  # ~5% des fournisseurs changent a chaque run
+    modifies = rng.sample(ids, k=min(n_maj, len(ids)))
+    with conn.cursor() as cur:
+        cur.execute("USE finance_compta")
+        for fid in modifies:
+            if rng.random() < 0.5:
+                cur.execute(
+                    "UPDATE dbo.Fournisseurs SET IBAN = %s WHERE FournisseurID = %d",
+                    (fake.iban(), fid),
+                )
+            else:
+                cur.execute(
+                    "UPDATE dbo.Fournisseurs SET RaisonSociale = %s WHERE FournisseurID = %d",
+                    (fake.company(), fid),
+                )
+        if rng.random() < 0.3:
+            nouvel_id = max(ids) + 1
+            cur.execute(
+                "INSERT INTO dbo.Fournisseurs (FournisseurID, RaisonSociale, SIREN, IBAN) "
+                "VALUES (%d, %s, %s, %s)",
+                (nouvel_id, fake.company(), str(rng.randint(100000000, 999999999)), fake.iban()),
+            )
+            modifies.append(nouvel_id)
+    return len(modifies)
 
 
 def inserer_fournisseurs(conn, fournisseurs: list[dict]) -> None:
@@ -158,14 +250,22 @@ def main() -> None:
 
     conn = connecter()
     creer_schema(conn)
-    creer_tables(conn)
-    inserer_fournisseurs(conn, fournisseurs)
 
+    premier_lancement = creer_table_fournisseurs_si_absente(conn)
+    if premier_lancement:
+        inserer_fournisseurs(conn, fournisseurs)
+        n_changements = len(fournisseurs)
+    else:
+        n_changements = simuler_maj_fournisseurs(conn, rng)
+    activer_cdc(conn)
+
+    creer_table_ecritures(conn)
     ecritures = construire_ecritures(evenements, rng)
     inserer_ecritures(conn, ecritures)
     conn.close()
 
-    print(f"{len(fournisseurs)} fournisseurs, {len(ecritures)} ecritures")
+    mot = "charges (1er lancement)" if premier_lancement else "modifies/ajoutes (CDC)"
+    print(f"{n_changements} fournisseurs {mot}, {len(ecritures)} ecritures")
 
 
 def _self_check() -> None:

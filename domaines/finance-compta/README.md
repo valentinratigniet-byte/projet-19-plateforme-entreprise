@@ -13,8 +13,12 @@ du raisonnement dans l'[issue #2](https://github.com/valentinratigniet-byte/vale
 - **`source/`** — `generer_evenements.py` (liste canonique partagée entre
   simulateurs, pour un rapprochement facture/écriture réel), simulateurs
   SQL Server / CSV / Factur-X.
-- **Ingestion** → `raw` — conteneurisée, idempotente (fournisseurs/écritures
-  en `remplacer_table`, relevé/factures en `ajouter_lignes`).
+- **Ingestion** → `raw` — conteneurisée, idempotente (écritures en
+  `remplacer_table`, relevé/factures en `ajouter_lignes`).
+- **Fournisseurs en CDC natif** (Change Data Capture SQL Server, pas un
+  diff applicatif) — seuls les changements réels depuis le dernier LSN
+  traité sont lus et appliqués (upsert/delete), pas une relecture
+  complète à chaque run. Détail technique complet : [`docs/construction-etl-erp-dbt.md`](../../docs/construction-etl-erp-dbt.md#cdc).
 - **dbt** — snapshot SCD2 fournisseurs, 4 modèles staging, 3 marts
   (`dim_fournisseur`, `fait_ecritures`, `fait_rapprochement_factures`) —
   **26/26 tests passent**.

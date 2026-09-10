@@ -53,7 +53,7 @@ générique :
 
 | Famille | Exemples génériques | Comment le pont se fait, typiquement |
 |---|---|---|
-| ERP | SAP S/4HANA, Sage, Cegid, Oracle NetSuite, Microsoft Dynamics 365, Odoo | Export batch (comme l'AS/400 ici), connecteur natif, ou réplication CDC (Debezium, Fivetran) vers `raw` |
+| ERP | SAP S/4HANA, Sage, Cegid, Oracle NetSuite, Microsoft Dynamics 365, Odoo | Export batch (comme l'AS/400 ici), connecteur natif, ou réplication CDC (Debezium, Fivetran) vers `raw` — **CDC natif construit et vérifié dans ce projet** sur `raw.finance_fournisseurs` (SQL Server, pas un outil tiers), détail dans [`construction-etl-erp-dbt.md#cdc`](construction-etl-erp-dbt.md#cdc) |
 | CRM | Salesforce, HubSpot, Dynamics CRM | Connecteur managé (Fivetran, Airbyte) ou API REST paginée — même principe que l'adaptateur API SaaS de ce projet (domaine Marketing) |
 | E-commerce | Shopify, Magento, PrestaShop | Export/API du back-office, souvent déjà proposé en connecteur prêt à l'emploi par les outils d'ingestion managés |
 | Comptabilité | QuickBooks, Pennylane, Sage Compta | Export CSV/API — même logique que l'ERP SQL Server de ce projet (Finance/Compta) |

@@ -99,6 +99,57 @@ def remplacer_table(
     return len(lignes)
 
 
+def appliquer_cdc(
+    conn, schema: str, table: str, lignes: list[dict], cle_metier: str, source_file: str
+) -> int:
+    """Applique des changements CDC (insert/update_after/delete, colonne
+    `_cdc_operation` deja posee par l'adaptateur sqlserver_cdc) sur une
+    table qui reflete l'etat courant -- upsert sur `cle_metier`, delete
+    si l'operation est une suppression. Ni remplacer_table (tout
+    recharger) ni ajouter_lignes (tout accumuler) : ici seules les
+    lignes reellement changees depuis le dernier appel arrivent, filtrees
+    par le CDC cote source, pas par cette fonction."""
+    if not lignes:
+        return 0
+    colonnes_sql, rows = _preparer(lignes, source_file)
+    _ensure_table(conn, schema, table, colonnes_sql)
+    cle_sql = _sanitize_ident(cle_metier)
+    with conn.cursor() as cur:
+        # Cible d'ON CONFLICT : un index unique suffit, pas besoin d'une
+        # contrainte PK -- la table est deja creee sans cle par _ensure_table.
+        cur.execute(
+            f'CREATE UNIQUE INDEX IF NOT EXISTS "{table}_{cle_sql}_uniq" '
+            f'ON "{schema}"."{table}" ("{cle_sql}")'
+        )
+
+        # _sanitize_ident retire le underscore de tete ("_cdc_operation" ->
+        # "cdc_operation") -- chercher la forme deja assainie, pas l'original.
+        idx_op = colonnes_sql.index(_sanitize_ident("_cdc_operation"))
+        idx_cle = colonnes_sql.index(cle_sql)
+        a_supprimer = [r[idx_cle] for r in rows if r[idx_op] == "delete"]
+        a_upserter = [r for r in rows if r[idx_op] != "delete"]
+
+        if a_supprimer:
+            cur.execute(
+                f'DELETE FROM "{schema}"."{table}" WHERE "{cle_sql}" = ANY(%s)',
+                (a_supprimer,),
+            )
+        if a_upserter:
+            cols_sql = ", ".join(f'"{c}"' for c in colonnes_sql)
+            maj_sql = ", ".join(
+                f'"{c}" = EXCLUDED."{c}"' for c in colonnes_sql if c != cle_sql
+            )
+            psycopg2.extras.execute_values(
+                cur,
+                f'INSERT INTO "{schema}"."{table}" ({cols_sql}, _source_file) VALUES %s '
+                f'ON CONFLICT ("{cle_sql}") DO UPDATE SET {maj_sql}, '
+                f"_source_file = EXCLUDED._source_file, _ingested_at = now()",
+                a_upserter,
+            )
+    conn.commit()
+    return len(lignes)
+
+
 def ajouter_lignes(
     conn, schema: str, table: str, lignes: list[dict], source_file: str
 ) -> int:

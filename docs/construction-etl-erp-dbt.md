@@ -57,6 +57,88 @@ def ajouter_lignes(conn, schema, table, lignes, source_file):
 > script d'ingestion avant de le considérer fini — la plupart des bugs
 > d'ETL ne se voient qu'au deuxième passage, jamais au premier.
 
+### CDC
+
+Tous les autres tableaux de ce projet sont ingérés par relecture complète
+(`remplacer_table`) ou par accumulation de nouveaux fichiers
+(`ajouter_lignes`) — les deux relisent une extraction entière à chaque
+run, même si rien n'a changé. `raw.finance_fournisseurs` fait exception :
+**Change Data Capture (CDC) natif SQL Server**, qui ne lit que ce qui a
+réellement changé dans le journal de transactions depuis le dernier LSN
+traité, pas une extraction complète comparée après coup.
+
+**Pourquoi ce tableau précisément** : une fiche fournisseur se modifie
+(IBAN, raison sociale — fusion/rachat) alors qu'une écriture comptable ne
+se modifie jamais (elle s'annule par une nouvelle écriture) — CDC a du
+sens sur une dimension qui change, pas sur un flux d'événements qui
+s'accumule.
+
+**Activation** (`domaines/finance-compta/source/simulateur_sqlserver.py`,
+idempotente — tolère d'être rappelée) :
+
+```python
+EXEC sys.sp_cdc_enable_db;
+EXEC sys.sp_cdc_enable_table @source_schema=N'dbo', @source_name=N'Fournisseurs',
+     @role_name=NULL, @supports_net_changes=1;
+```
+
+Nécessite `MSSQL_AGENT_ENABLED: "true"` dans le conteneur SQL Server —
+c'est le job SQL Agent que cette commande démarre qui déverse réellement
+le journal de transactions dans les tables de changement. **Sans lui,
+aucune erreur ne le signale** : les tables de changement restent
+silencieusement vides, seul un test qui compare avant/après le révèle.
+
+**Lecture** (`ingestion/adaptateurs/sqlserver_cdc.py`) :
+
+```python
+DECLARE @from binary(10) = sys.fn_cdc_increment_lsn(@dernier_lsn_traite);
+DECLARE @to   binary(10) = sys.fn_cdc_get_max_lsn();
+SELECT * FROM cdc.fn_cdc_get_all_changes_dbo_Fournisseurs(@from, @to, 'all');
+```
+
+Chaque ligne porte `__$operation` (1=delete, 2=insert, 3=update avant,
+4=update après — l'image "avant" est filtrée, jamais utile pour l'état
+courant) et `__$start_lsn` (converti en hex, conservé dans `raw` sous
+`cdc_lsn`/`cdc_operation` — pas des artefacts internes jetés, la preuve
+que la donnée vient réellement du CDC). Le filigrane (dernier LSN traité)
+vit dans `raw._cdc_watermarks`, une ligne par table CDC.
+
+**Premier appel = instantané complet, jamais du CDC seul.** CDC ne voit
+rien d'antérieur à `sp_cdc_enable_table` — il n'a aucun moyen de
+restituer l'état des fournisseurs déjà présents avant son activation.
+`ingerer_fournisseurs_cdc()` détecte l'absence de filigrane et fait un
+`SELECT *` classique une seule fois, pose le filigrane au **LSN maximal
+courant** (pas minimal), puis bascule sur le CDC seul aux appels
+suivants — sinon les changements captés depuis l'activation seraient
+appliqués une seconde fois par-dessus l'instantané.
+
+**Écrit dans une table qui reflète l'état courant, pas un journal.**
+`postgres_writer.appliquer_cdc()` upsert sur `FournisseurID` (index
+unique créé au premier appel) et supprime les lignes dont
+`__$operation` = delete — ni `remplacer_table` (tout recharger) ni
+`ajouter_lignes` (tout accumuler) ne conviennent : ici seules les lignes
+réellement changées arrivent, il faut les fusionner dans l'état
+existant, pas les empiler ni tout écraser.
+
+**Vérifié en conditions réelles, pas supposé** — 3 exécutions
+successives contre un vrai SQL Server avec CDC actif :
+
+| Exécution | Ce qui a changé côté SQL Server | Résultat dans `raw.finance_fournisseurs` |
+|---|---|---|
+| 1 (amorçage) | 80 fournisseurs déjà en base au 1ᵉʳ lancement | 80 lignes insérées, filigrane posé au LSN courant |
+| 2 | 4 fournisseurs modifiés (IBAN/raison sociale) via `simuler_maj_fournisseurs` | **4 lignes mises à jour en place** — total resté à 80, pas 84 |
+| 3 | Aucun changement côté source | **0 ligne lue** — CDC renvoie un résultat vide, pas une erreur |
+
+`dbt snapshot`/`dbt run`/`dbt test` rejoués sans aucune modification en
+aval (`stg_finance_fournisseurs`, `dim_fournisseur`) — les colonnes CDC
+en plus dans `raw` ne cassent rien, 13/13 tests toujours PASS.
+
+> **Pour refaire :** activer CDC **après** avoir réfléchi à l'amorçage —
+> c'est le piège le plus probable, pas la syntaxe `sp_cdc_enable_table`
+> elle-même. Tester explicitement le cas "zéro changement" avant de le
+> considérer fini : un CDC qui plante silencieusement sur une liste vide
+> ne se voit qu'au 2ᵉ ou 3ᵉ run, jamais au premier.
+
 **Avant / après, mesuré — domaine Ventes/Commerce (AS/400 + Excel)**
 (détail complet et méthode : [`avant.md`](../domaines/ventes-commerce/avant.md) /
 [`apres.md`](../domaines/ventes-commerce/apres.md)) :
