@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: stg_support_tickets
+    description: "Tickets SAV MongoDB aplatis -- dérive de schéma (customer_ref vs client_id) résolue par coalesce, pas corrigée à la source."
+    columns:
+      - name: ticket_id
+        tests: [not_null, unique]
+      - name: client_id
+        tests: [not_null]
+      - name: statut
+        tests:
+          - accepted_values:
+              values: ["ouvert", "en_cours", "resolu", "ferme"]
+      - name: categorie
+        tests:
+          - accepted_values:
+              values: ["livraison", "produit", "facturation", "autre"]

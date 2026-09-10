@@ -1,0 +1,12 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: support_tickets
+        description: "Copie brute des tickets SAV MongoDB (état courant complet, remplacé à chaque run) -- chaque document transporté tel quel dans la colonne `document` (JSON en texte), pas aplati -- un document store ne garantit aucun schéma fixe."
+        loaded_at_field: _ingested_at
+        freshness:
+          warn_after: {count: 1, period: day}
+          error_after: {count: 2, period: day}

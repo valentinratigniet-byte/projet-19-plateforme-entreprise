@@ -25,7 +25,7 @@ notifier quelqu'un.
 | `verifier_derive_qualite.py` + `.sh` | Compare les taux mesurés (doublons, SIREN invalide) à la référence documentée dans `avant.md` de chaque domaine | Alerte dérive qualité |
 | `refresh_filiation.sh.example` | Scan additif Filiation (`scan_database.py --merge`) + push git | Refresh Filiation automatisé |
 | `domaines/marketing-activite/run_rgpd_anonymiser.sh.example` + `rgpd_anonymiser.py` | Anonymise un contact sur demande (email en paramètre) | Traitement demande RGPD (webhook) |
-| `declencher_dag.sh.example` | `curl` l'API Airflow (`POST /dags/dbt_pipeline/dagRuns`) — best-effort, jamais bloquant | Les 3 workflows d'ingestion de domaine, juste après leur propre ingestion (cf. [`docs/construction-etl-erp-dbt.md`](../docs/construction-etl-erp-dbt.md) pour la porte `attendre_les_3_domaines` côté DAG) |
+| `declencher_dag.sh.example` | `curl` l'API Airflow (`POST /dags/dbt_pipeline/dagRuns`) — best-effort, jamais bloquant | Les 3 workflows d'ingestion de domaine, juste après leur propre ingestion (cf. [`docs/construction-etl-erp-dbt.md`](../docs/construction-etl-erp-dbt.md) pour la porte `attendre_tous_les_domaines` côté DAG) |
 
 Le webhook d'alerte échec DAG (déclenché par `on_failure_callback` sur
 le DAG Airflow) et le webhook Factur-X entrant vivent uniquement côté

@@ -17,6 +17,7 @@ env:
   SA_PASSWORD: "CIpassw0rd!2026"
   MYSQL_ROOT_PASSWORD: ci-mysql-pw
   SAAS_CLIENT_SECRET: ci-saas-secret
+  MONGO_ROOT_PASSWORD: ci-mongo-pw
 
 jobs:
   plateforme-entreprise:
@@ -52,6 +53,10 @@ jobs:
         working-directory: domaines/marketing-activite/source
         run: docker compose up -d --wait --wait-timeout 120
 
+      - name: Demarrer la source Support Client (MongoDB)
+        working-directory: domaines/support-client/source
+        run: docker compose up -d --wait --wait-timeout 120
+
       - name: Generer les sources synthetiques (gitignorees, deterministes -- seed fixe)
         run: |
           cd domaines/ventes-commerce/source && python simulateur_as400.py && python simulateur_excel_remises.py && cd -
@@ -73,6 +78,14 @@ jobs:
           MYSQL_PORT: "3306"
         run: python simulateur_mysql.py
 
+      - name: Peupler MongoDB (tickets SAV)
+        working-directory: domaines/support-client/source
+        env:
+          MONGO_HOST: localhost
+          MONGO_PORT: "27017"
+          MONGO_ROOT_PASSWORD: ${{ env.MONGO_ROOT_PASSWORD }}
+        run: python simulateur_mongodb.py
+
       - name: Demarrer le mock SaaS marketing
         working-directory: domaines/marketing-activite/saas-mock
         env:
@@ -86,7 +99,7 @@ jobs:
           echo "mock SaaS jamais devenu pret" >&2
           exit 1
 
-      - name: Creer les roles RLS specifiques aux domaines (Ventes, Marketing)
+      - name: Creer les roles RLS specifiques aux domaines (Ventes, Marketing, Support Client)
         # Le GRANT USAGE ON SCHEMA marts de marketing/rls.sql doit attendre
         # que dbt ait cree le schema marts (etape suivante) -- seul le
         # CREATE ROLE (necessaire aux post_hook de "dbt run") est fait ici.
@@ -95,6 +108,7 @@ jobs:
         run: |
           psql -h localhost -p 5440 -U postgres -d projet19 -v ON_ERROR_STOP=1 -f domaines/ventes-commerce/rls.sql
           psql -h localhost -p 5440 -U postgres -d projet19 -v ON_ERROR_STOP=1 -c "CREATE ROLE role_marketing NOLOGIN;"
+          psql -h localhost -p 5440 -U postgres -d projet19 -v ON_ERROR_STOP=1 -f domaines/support-client/rls.sql
 
       - name: Ingerer le domaine Ventes/Commerce (AS/400 + Excel, deja committes)
         working-directory: domaines/ventes-commerce
@@ -136,6 +150,20 @@ jobs:
           SAAS_CLIENT_ID: projet19
         run: python ingestion.py
 
+      - name: Ingerer le domaine Support Client (MongoDB)
+        working-directory: domaines/support-client
+        env:
+          PYTHONPATH: ${{ github.workspace }}/ingestion
+          PGHOST: localhost
+          PGPORT: "5440"
+          PGDATABASE: projet19
+          PGUSER: ingestion
+          PGPASSWORD: ${{ env.INGESTION_PASSWORD }}
+          MONGO_HOST: localhost
+          MONGO_PORT: "27017"
+          MONGO_ROOT_PASSWORD: ${{ env.MONGO_ROOT_PASSWORD }}
+        run: python ingestion.py
+
       - name: dbt seed + snapshot + run + test (staging -> marts, RLS en post_hook)
         working-directory: dbt
         env:
@@ -159,7 +187,7 @@ jobs:
           psql -h localhost -p 5440 -U postgres -d projet19 -v ON_ERROR_STOP=1 -f entrepot/grants_marts_partages.sql
           psql -h localhost -p 5440 -U postgres -d projet19 -v ON_ERROR_STOP=1 -c "GRANT USAGE ON SCHEMA marts TO role_marketing;"
 
-      - name: Verifier la RLS reellement (SET ROLE, 3 domaines)
+      - name: Verifier la RLS reellement (SET ROLE, 4 domaines)
         env:
           PGHOST: localhost
           PGPORT: "5440"
@@ -170,6 +198,7 @@ jobs:
           python domaines/ventes-commerce/test_rls.py
           python domaines/finance-compta/test_rls.py
           python domaines/marketing-activite/test_rls.py
+          python domaines/support-client/test_rls.py
 
       - name: Demarrer un recepteur de webhook (equivalent CI du conteneur webhook-echo manuel, cf. docs/guide-realisation.md)
         # Le mock SaaS appelle webhook-echo:5001 depuis SON reseau Docker

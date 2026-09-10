@@ -1,0 +1,8 @@
+version: 2
+
+models:
+  - name: fait_tickets
+    description: "Un ticket SAV par ligne -- délai de résolution calculé, RLS role_support/role_direction."
+    columns:
+      - name: ticket_id
+        tests: [not_null, unique]

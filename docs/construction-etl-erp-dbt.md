@@ -309,7 +309,7 @@ inchangé — filet de sécurité si n8n est indisponible ou si l'appel API
 dbt trop tôt.** Les 3 domaines ingèrent à des heures différentes (2h/3h/4h)
 sans se connaître entre eux — le premier qui finit (Ventes, 2h) ne sait
 pas si Finance et Marketing ont fini. Une porte en tête du DAG
-(`attendre_les_3_domaines`, `ShortCircuitOperator`) répond à deux
+(`attendre_tous_les_domaines`, `ShortCircuitOperator`) répond à deux
 questions avant de laisser passer :
 
 ```python
@@ -348,7 +348,7 @@ ferait `declencher_dag.sh.example`), pas simulée :
 
 | Scénario déclenché | Attendu | Observé |
 |---|---|---|
-| `marketing_contacts` vide (2 domaines prêts sur 3) | porte = saut propre | `attendre_les_3_domaines` OK, `dbt_seed` **skipped** |
+| `marketing_contacts` vide (2 domaines prêts sur 3) | porte = saut propre | `attendre_tous_les_domaines` OK, `dbt_seed` **skipped** |
 | Les 3 domaines fraîchement peuplés | porte laisse passer | `dbt_seed` **failed** (pas *skipped* — normal, pas de vrai projet dbt monté dans ce test minimal) |
 | Nouveau déclenchement, rien n'a encore réellement réussi | repasse la porte | `dbt_seed` de nouveau **failed**, pas *skipped* |
 | `dbt_docs_generate` forcé à *success* (simule un run complet) | porte bloque le doublon | `dbt_seed` **skipped** |

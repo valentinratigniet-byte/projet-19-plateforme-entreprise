@@ -12,4 +12,4 @@
 -- le serveur a l'epoque (pas remonte dans un script), invisible tant que
 -- personne ne reconstruit le pipeline depuis un entrepot vierge.
 
-GRANT USAGE ON SCHEMA marts TO role_rh, role_finance, role_direction, role_commercial;
+GRANT USAGE ON SCHEMA marts TO role_rh, role_finance, role_direction, role_commercial, role_support;

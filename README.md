@@ -123,7 +123,21 @@ flowchart LR
     MR --> MS["stg_marketing (net)"]:::staging --> DWH3["Entrepôt constellation"]:::dwh
 ```
 
-**Entrepôt → Exploitation → Gouvernance** (commun aux 3 domaines)
+**🎫 Support Client** (4ᵉ domaine, ajouté après les 3 premiers — premier
+sur un document store, pas une base relationnelle ; détail complet dans
+[`domaines/support-client/README.md`](domaines/support-client/README.md))
+
+```mermaid
+flowchart LR
+    classDef source fill:#6c757d,stroke:#495057,color:#ffffff
+    classDef adapter fill:#E4A93C,stroke:#b8842a,color:#1a1a1a
+    classDef staging fill:#137A8B,stroke:#0d5866,color:#ffffff
+    classDef dwh fill:#2FA36B,stroke:#1f7a51,color:#ffffff
+
+    T1["MongoDB<br/>tickets SAV (JSON)"]:::source --> TA["Adaptateur MongoDB"]:::adapter --> TR["raw.support_tickets<br/>(document JSON brut)"]:::source --> TS["stg_support_tickets<br/>(aplati ::jsonb / ->>)"]:::staging --> DWH4["Entrepôt constellation"]:::dwh
+```
+
+**Entrepôt → Exploitation → Gouvernance** (commun aux 4 domaines)
 
 ```mermaid
 flowchart TD
