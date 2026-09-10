@@ -53,6 +53,19 @@
       "credentials": {
         "sshPassword": { "id": "A_CONFIGURER", "name": "VPS Projet 19" }
       }
+    },
+    {
+      "parameters": {
+        "command": "bash /opt/projet19/airflow/declencher_dag.sh"
+      },
+      "id": "ssh-declencher-dag",
+      "name": "Declencher dbt_pipeline (Airflow)",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [680, 200],
+      "credentials": {
+        "sshPassword": { "id": "A_CONFIGURER", "name": "VPS Projet 19" }
+      }
     }
   ],
   "connections": {
@@ -61,6 +74,9 @@
     },
     "Webhook SaaS (push temps reel)": {
       "main": [[{ "node": "Rafraichir raw.marketing_stats_saas", "type": "main", "index": 0 }]]
+    },
+    "Ingestion MySQL + JSON + API SaaS -> raw.marketing_*": {
+      "main": [[{ "node": "Declencher dbt_pipeline (Airflow)", "type": "main", "index": 0 }]]
     }
   },
   "active": false,

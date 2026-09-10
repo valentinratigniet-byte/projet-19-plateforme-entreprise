@@ -1,6 +1,18 @@
 """DAG de production : raw -> snapshots (SCD2) -> staging -> marts -> tests
--> docs. Remplace le placeholder healthcheck.py (Phase 1). Tourne apres les
-3 ingestions n8n (2h/3h/4h) -- 5h UTC laisse une marge large.
+-> docs. Remplace le placeholder healthcheck.py (Phase 1).
+
+Declenchement double, pas un choix entre les deux :
+- EVENEMENTIEL -- chacun des 3 workflows d'ingestion n8n appelle l'API
+  Airflow (POST /dags/dbt_pipeline/dagRuns) des qu'il termine. dbt peut
+  donc demarrer quelques minutes apres la derniere ingestion du jour,
+  au lieu d'attendre systematiquement 5h UTC.
+- PLANIFIE -- le cron 5h UTC reste actif en filet de securite (n8n hors
+  service, appel API rate, etc.) : les 3 domaines ont largement fini a
+  cette heure-la de toute facon.
+Les deux chemins passent par la meme porte (`attendre_les_3_domaines`)
+pour ne jamais lancer dbt sur une donnee partielle -- un declenchement
+premature (le premier domaine du jour qui finit, pas le dernier) se
+contente de s'arreter proprement, ce n'est pas un echec.
 
 2 webhooks n8n branches (cf. n8n/*.json, ops/README.md) :
 - echec (n'importe quelle tache) -> "Projet 19 - Alerte echec DAG dbt"
@@ -13,8 +25,13 @@ import os
 import urllib.request
 from datetime import datetime
 
+import pendulum
+import psycopg2
 from airflow import DAG
+from airflow.models import DagRun
 from airflow.operators.bash import BashOperator
+from airflow.operators.python import ShortCircuitOperator
+from airflow.utils.state import DagRunState
 
 DBT_DIR = "/opt/dbt"
 DBT_FLAGS = "--profiles-dir . --project-dir . --log-path /tmp/dbt_logs --target-path /tmp/dbt_target"
@@ -25,6 +42,44 @@ DBT_FLAGS = "--profiles-dir . --project-dir . --log-path /tmp/dbt_logs --target-
 # webhook plus bas sont deja best-effort -- try/except et "|| true" --,
 # une URL vide echoue proprement de la meme facon, elle ne casse rien).
 N8N_BASE = os.environ.get("N8N_WEBHOOK_BASE_URL", "")
+
+# Une table par domaine, choisie pour etre toujours rafraichie a chaque
+# ingestion reussie -- pas raw.finance_fournisseurs : le CDC peut tres
+# legitimement n'avoir "rien de nouveau" un jour donne (cf.
+# docs/construction-etl-erp-dbt.md#cdc), ce qui ne veut pas dire que
+# l'ingestion Finance n'a pas tourne.
+TABLES_TEMOINS = ["ventes_commandes", "finance_ecritures", "marketing_contacts"]
+
+
+def _tous_domaines_ingeres_aujourdhui() -> bool:
+    """Porte d'entree du DAG (ShortCircuitOperator) : ne laisse dbt
+    demarrer que si (1) un run reussi n'a pas deja eu lieu aujourd'hui --
+    evite de rejouer dbt en double si plusieurs domaines declenchent le
+    DAG le meme jour -- et (2) les 3 domaines ont une donnee fraiche du
+    jour. Un retour False n'est pas un echec : le declenchement suivant
+    (un autre domaine, ou le cron 5h UTC) retentera normalement."""
+    aujourdhui = pendulum.now("UTC").date()
+    runs_reussis = DagRun.find(dag_id="dbt_pipeline", state=DagRunState.SUCCESS)
+    if any(r.logical_date and r.logical_date.date() == aujourdhui for r in runs_reussis):
+        return False
+
+    conn = psycopg2.connect(
+        host=os.environ["PGHOST"],
+        port=os.environ.get("PGPORT", "5432"),
+        dbname=os.environ["PGDATABASE"],
+        user=os.environ["PGUSER"],
+        password=os.environ["PGPASSWORD"],
+    )
+    try:
+        with conn.cursor() as cur:
+            for table in TABLES_TEMOINS:
+                cur.execute(f'SELECT max(_ingested_at)::date = CURRENT_DATE FROM "raw"."{table}"')
+                (frais,) = cur.fetchone()
+                if not frais:
+                    return False
+    finally:
+        conn.close()
+    return True
 
 
 def notifier_echec(context) -> None:
@@ -52,6 +107,10 @@ with DAG(
     tags=["dbt", "production"],
     on_failure_callback=notifier_echec,
 ) as dag:
+    attendre_les_3_domaines = ShortCircuitOperator(
+        task_id="attendre_les_3_domaines",
+        python_callable=_tous_domaines_ingeres_aujourdhui,
+    )
     seed = BashOperator(task_id="dbt_seed", bash_command=f"dbt seed {DBT_FLAGS}", cwd=DBT_DIR)
     snapshot = BashOperator(task_id="dbt_snapshot", bash_command=f"dbt snapshot {DBT_FLAGS}", cwd=DBT_DIR)
     run = BashOperator(task_id="dbt_run", bash_command=f"dbt run {DBT_FLAGS}", cwd=DBT_DIR)
@@ -62,4 +121,4 @@ with DAG(
     )
     docs = BashOperator(task_id="dbt_docs_generate", bash_command=f"dbt docs generate {DBT_FLAGS}", cwd=DBT_DIR)
 
-    seed >> snapshot >> run >> test >> notifier_succes >> docs
+    attendre_les_3_domaines >> seed >> snapshot >> run >> test >> notifier_succes >> docs

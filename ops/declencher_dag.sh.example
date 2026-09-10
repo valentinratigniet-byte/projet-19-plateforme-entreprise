@@ -1,0 +1,19 @@
+#!/bin/bash
+# Copier en declencher_dag.sh sur le serveur (jamais commite), remplir le
+# mot de passe reel (meme compte que AIRFLOW_ADMIN_USER/PASSWORD de
+# airflow/.env). Appele par les 3 workflows n8n d'ingestion de domaine,
+# juste apres leur propre ingestion -- pas une decision prise ici : le
+# DAG dbt_pipeline (tache attendre_les_3_domaines) verifie lui-meme si
+# les 3 domaines ont une donnee fraiche du jour avant de tourner, et
+# s'arrete proprement sinon. Le cron 5h UTC du DAG reste le filet de
+# securite si aucun des 3 appels n'aboutit (n8n hors service, port
+# ferme...) -- best-effort assume : un echec ici ne bloque jamais le
+# workflow n8n qui l'appelle.
+set -euo pipefail
+
+curl -sf --max-time 10 -X POST \
+  "http://localhost:8090/api/v1/dags/dbt_pipeline/dagRuns" \
+  -H "Content-Type: application/json" \
+  -u "change-me:change-me" \
+  -d "{}" \
+  || echo "declenchement dbt_pipeline echoue (best-effort -- le cron 5h UTC prendra le relais)" >&2

@@ -289,6 +289,72 @@ ERP ci-dessus pour pourquoi).*
 réellement connectés à ce projet à ce jour — volontairement absents de
 cette page plutôt qu'inventés.*
 
+## 4. Acheminement — du dernier domaine ingéré au premier `dbt run`
+
+Ni ETL, ni ERP, ni dbt à proprement parler — la mécanique qui relie les
+deux mondes. Jusqu'ici le DAG `dbt_pipeline` ne tournait qu'au cron
+(5h UTC), une marge large mais aveugle : que les 3 domaines aient fini à
+2h05 ou à 4h55, dbt attendait 5h quand même.
+
+**Déclenchement événementiel, cron en filet de sécurité, pas un
+remplacement.** Les 3 workflows n8n d'ingestion (`ventes-commerce`,
+`finance-compta`, `marketing-activite`) appellent désormais l'API
+Airflow (`POST /dags/dbt_pipeline/dagRuns`, via `ops/declencher_dag.sh.example`
+— best-effort, `|| echo ... >&2` plutôt qu'un échec qui remonterait dans
+n8n) juste après leur propre ingestion. Le cron 5h UTC reste actif,
+inchangé — filet de sécurité si n8n est indisponible ou si l'appel API
+échoue, pas remplacé par l'événementiel.
+
+**La vraie difficulté n'est pas d'appeler l'API, c'est de ne pas lancer
+dbt trop tôt.** Les 3 domaines ingèrent à des heures différentes (2h/3h/4h)
+sans se connaître entre eux — le premier qui finit (Ventes, 2h) ne sait
+pas si Finance et Marketing ont fini. Une porte en tête du DAG
+(`attendre_les_3_domaines`, `ShortCircuitOperator`) répond à deux
+questions avant de laisser passer :
+
+```python
+def _tous_domaines_ingeres_aujourdhui() -> bool:
+    # 1. Un run reussi a-t-il deja eu lieu aujourd'hui ? -- evite de
+    #    rejouer dbt en double si plusieurs domaines declenchent le DAG
+    #    le meme jour (typiquement les 3).
+    aujourdhui = pendulum.now("UTC").date()
+    runs_reussis = DagRun.find(dag_id="dbt_pipeline", state=DagRunState.SUCCESS)
+    if any(r.logical_date and r.logical_date.date() == aujourdhui for r in runs_reussis):
+        return False
+    # 2. Les 3 domaines ont-ils une donnee fraiche du jour ? -- une table
+    #    temoin par domaine, jamais raw.finance_fournisseurs (le CDC peut
+    #    legitimement n'avoir "rien de nouveau" un jour donne, cf. section CDC).
+    for table in ["ventes_commandes", "finance_ecritures", "marketing_contacts"]:
+        if not _frais_aujourdhui(table):
+            return False
+    return True
+```
+
+Un retour `False` n'est **pas un échec** : `ShortCircuitOperator` saute
+proprement toutes les tâches en aval sans déclencher `notifier_echec` —
+le déclenchement suivant (un autre domaine, ou le cron 5h UTC) retentera
+normalement. C'est le premier domaine qui finit qui déclenche le plus de
+"sauts propres", pas une anomalie : Ventes (2h) sautera systématiquement
+tant que Finance et Marketing n'ont pas fini.
+
+**Vérifié, pas juste écrit** — le DAG ne peut pas tourner en local
+(pas d'environnement Airflow complet dans ce dépôt), donc vérifié
+autrement : DAG chargé et parsé sans erreur dans l'image officielle
+`apache/airflow:2.10.3-python3.12` (`from dbt_pipeline import dag`,
+ordre des tâches confirmé), et chaque appel d'API relu contre le code
+source réel d'Airflow 2.10.3 plutôt que supposé — `DagRun.find()`
+n'accepte pas de paramètre `logical_date` (seulement `execution_date`),
+mais **`logical_date` existe bien comme propriété en lecture sur chaque
+`DagRun`** (`return self.execution_date`) : le code ci-dessus utilise
+la bonne forme aux deux endroits, pas la même par hasard.
+
+> **Pour refaire :** un déclenchement événementiel sans porte de garde
+> est plus dangereux qu'utile — il ferait tourner dbt sur un tiers de la
+> donnée du jour, silencieusement "à l'heure", jamais vu comme une
+> anomalie tant que personne ne compare les volumes. La porte doit être
+> vérifiée en conditions réelles avant l'événementiel lui-même, pas
+> après.
+
 ## Ordre de construction, si c'était à refaire
 
 L'ordre réellement suivi sur les 7 phases — chaque étape ne dépend que de

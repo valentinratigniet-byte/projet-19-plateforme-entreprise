@@ -74,7 +74,7 @@ dbt ne se déclenche pas tout seul — quelque chose doit lancer
 
 | Orchestrateur | Où dbt s'intègre | Ce projet |
 |---|---|---|
-| **Apache Airflow** | `BashOperator`/`dbt Cloud provider` dans un DAG, retries fins, sensors, backfill natif | Utilisé — DAG `dbt_pipeline.py`, quotidien 5h UTC |
+| **Apache Airflow** | `BashOperator`/`dbt Cloud provider` dans un DAG, retries fins, sensors, backfill natif | Utilisé — DAG `dbt_pipeline.py`, déclenchement double (événementiel + cron 5h UTC en filet de sécurité, détail ci-dessous) |
 | **dbt Cloud (scheduler intégré)** | Pas d'orchestrateur externe : dbt Cloud propose son propre planificateur de jobs | Non utilisé ici (dbt-core open source, pas dbt Cloud) |
 | **Dagster / Prefect** | Intégrations officielles (`dagster-dbt`, `prefect-dbt`) qui exposent chaque modèle dbt comme un actif/une tâche suivie individuellement | Non utilisé ici — Prefect sert ailleurs dans le portfolio (Projet 10) pour l'extraction, pas pour dbt |
 | **n8n / low-code** | Simple appel `dbt run` en ligne de commande via un nœud SSH/Exec | Utilisé ailleurs dans le portfolio (Projet 18) pour un pipeline plus petit |
