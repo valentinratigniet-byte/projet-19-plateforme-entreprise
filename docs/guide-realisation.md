@@ -49,7 +49,7 @@ son réseau comme il le fait pour les ressources gérées par Coolify
 3. `docker compose up -d airflow-webserver` pour recréer le conteneur avec
    les nouveaux labels.
 
-**Vérifié** : `http://airflow-projet19.76.13.43.130.sslip.io/health` →
+**Vérifié** : `http://airflow-projet19.<vps-ip>.sslip.io/health` →
 `302` (redirection vers HTTPS) ; `https://.../health` → `200`, avec
 vérification **stricte** du certificat (pas de `-k`) qui passe — donc un
 vrai certificat Let's Encrypt valide, pas juste servi en HTTPS auto-signé.

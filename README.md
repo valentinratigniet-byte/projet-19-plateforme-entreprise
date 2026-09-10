@@ -329,7 +329,9 @@ assumée (même discipline "mesuré pas inventé" que le reste du portfolio).
 
 **Phase 1 (infra) — Airflow.** Stack `LocalExecutor` minimale, déployée
 sur le VPS existant, webserver + scheduler healthy, exposée en HTTPS
-(certificat Let's Encrypt valide) sur [airflow-projet19.76.13.43.130.sslip.io](https://airflow-projet19.76.13.43.130.sslip.io).
+(certificat Let's Encrypt valide) sur un sous-domaine `sslip.io` dédié
+(non republié ici — voir `docs/guide-realisation.md` pour le détail de
+la vérification, adresse volontairement générique).
 Entrepôt Postgres auto-hébergé, schéma `raw` + rôles à privilège minimal.
 **DAG de production réel** (`dbt_pipeline` : seed → snapshot → run → test
 → docs generate, quotidien à 5h) construit et **vérifié en conditions
