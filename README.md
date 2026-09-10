@@ -201,7 +201,7 @@ projet-19-plateforme-entreprise/
 ├── airflow/                    <- DAG dbt (raw -> snapshots -> staging -> marts -> tests -> slim CI)
 ├── entrepot/                  <- dictionnaire de données généré, schéma `raw` (brut) + constellation (net)
 ├── hermes-agent/               <- config/déploiement Hermès Agent (Phase 8, optionnelle)
-└── docs/                       <- guide-realisation.md, pieges-*.md, housekeeping
+└── docs/                       <- guide-realisation.md, outils.md, construction-etl-erp-dbt.md, pieges-*.md, housekeeping
 ```
 
 **Coût — 0€ garanti sur les phases 1 à 7**, 4 décisions explicites pour
@@ -452,6 +452,15 @@ non filtrés...), dans
 [l'issue #2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
 pour le détail complet de chaque brique. Il ne reste que la Phase 8
 (optionnelle, Hermès Agent) — en standby.
+
+Deux lectures complémentaires : [`docs/construction-etl-erp-dbt.md`](docs/construction-etl-erp-dbt.md)
+reprend ce même guide sous 3 angles transversaux (ETL, ERP, dbt) plutôt
+que phase par phase, avec un ordre de construction recommandé si c'était
+à refaire ; [`docs/outils.md`](docs/outils.md) liste chaque outil utilisé
+— lien officiel, tâche, pourquoi ce choix plutôt qu'une alternative,
+comment il est concrètement déclenché — et les règles transverses qui
+s'appliquent indépendamment de l'outil (lecture seule sur toute source
+externe, idempotence vérifiée en relançant, RLS posée en `post_hook`...).
 
 ---
 
