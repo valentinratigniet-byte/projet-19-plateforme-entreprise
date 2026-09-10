@@ -31,7 +31,6 @@ from airflow import DAG
 from airflow.models import DagRun
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import ShortCircuitOperator
-from airflow.utils.state import DagRunState
 
 DBT_DIR = "/opt/dbt"
 DBT_FLAGS = "--profiles-dir . --project-dir . --log-path /tmp/dbt_logs --target-path /tmp/dbt_target"
@@ -53,15 +52,30 @@ TABLES_TEMOINS = ["ventes_commandes", "finance_ecritures", "marketing_contacts"]
 
 def _tous_domaines_ingeres_aujourdhui() -> bool:
     """Porte d'entree du DAG (ShortCircuitOperator) : ne laisse dbt
-    demarrer que si (1) un run reussi n'a pas deja eu lieu aujourd'hui --
-    evite de rejouer dbt en double si plusieurs domaines declenchent le
-    DAG le meme jour -- et (2) les 3 domaines ont une donnee fraiche du
-    jour. Un retour False n'est pas un echec : le declenchement suivant
-    (un autre domaine, ou le cron 5h UTC) retentera normalement."""
+    demarrer que si (1) un run n'a pas deja REELLEMENT execute dbt
+    aujourd'hui -- evite de le rejouer en double si plusieurs domaines
+    declenchent le DAG le meme jour -- et (2) les 3 domaines ont une
+    donnee fraiche du jour. Un retour False n'est pas un echec : le
+    declenchement suivant (un autre domaine, ou le cron 5h UTC) retentera
+    normalement.
+
+    Piege reel rencontre en testant (Airflow standalone reel, pas
+    suppose) : DagRun.state == 'success' meme quand CE short-circuit a
+    tout saute (les taches en aval passent 'skipped', pas 'failed', et un
+    DagRun dont aucune tache n'a echoue est 'success' -- y compris quand
+    aucune n'a vraiment tourne). Verifier DagRun.state aurait bloque dbt
+    en permanence des le tout premier declenchement premature de la
+    journee. Verifie ici l'etat de la DERNIERE tache reelle
+    (dbt_docs_generate) sur les runs du jour, pas l'etat du DagRun."""
     aujourdhui = pendulum.now("UTC").date()
-    runs_reussis = DagRun.find(dag_id="dbt_pipeline", state=DagRunState.SUCCESS)
-    if any(r.logical_date and r.logical_date.date() == aujourdhui for r in runs_reussis):
-        return False
+    runs_du_jour = [
+        r for r in DagRun.find(dag_id="dbt_pipeline")
+        if r.logical_date and r.logical_date.date() == aujourdhui
+    ]
+    for r in runs_du_jour:
+        derniere_tache = r.get_task_instance("dbt_docs_generate")
+        if derniere_tache is not None and derniere_tache.state == "success":
+            return False
 
     conn = psycopg2.connect(
         host=os.environ["PGHOST"],

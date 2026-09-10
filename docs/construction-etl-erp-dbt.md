@@ -337,22 +337,49 @@ normalement. C'est le premier domaine qui finit qui déclenche le plus de
 "sauts propres", pas une anomalie : Ventes (2h) sautera systématiquement
 tant que Finance et Marketing n'ont pas fini.
 
-**Vérifié, pas juste écrit** — le DAG ne peut pas tourner en local
-(pas d'environnement Airflow complet dans ce dépôt), donc vérifié
-autrement : DAG chargé et parsé sans erreur dans l'image officielle
-`apache/airflow:2.10.3-python3.12` (`from dbt_pipeline import dag`,
-ordre des tâches confirmé), et chaque appel d'API relu contre le code
-source réel d'Airflow 2.10.3 plutôt que supposé — `DagRun.find()`
-n'accepte pas de paramètre `logical_date` (seulement `execution_date`),
-mais **`logical_date` existe bien comme propriété en lecture sur chaque
-`DagRun`** (`return self.execution_date`) : le code ci-dessus utilise
-la bonne forme aux deux endroits, pas la même par hasard.
+**Vérifié contre un vrai Airflow, pas seulement parsé.** Pas
+d'environnement Airflow complet versionné dans ce dépôt (webserver +
+scheduler + base de métadonnées), mais rien n'empêche d'en démarrer un
+jetable pour vérifier : `apache/airflow:2.10.3-python3.12` en mode
+`standalone` (webserver + scheduler + triggerer + admin auto-créé),
+branché sur un vrai `raw` Postgres via `--network entrepot_default`, DAG
+monté en volume. Séquence réellement rejouée par API (`curl`, comme le
+ferait `declencher_dag.sh.example`), pas simulée :
+
+| Scénario déclenché | Attendu | Observé |
+|---|---|---|
+| `marketing_contacts` vide (2 domaines prêts sur 3) | porte = saut propre | `attendre_les_3_domaines` OK, `dbt_seed` **skipped** |
+| Les 3 domaines fraîchement peuplés | porte laisse passer | `dbt_seed` **failed** (pas *skipped* — normal, pas de vrai projet dbt monté dans ce test minimal) |
+| Nouveau déclenchement, rien n'a encore réellement réussi | repasse la porte | `dbt_seed` de nouveau **failed**, pas *skipped* |
+| `dbt_docs_generate` forcé à *success* (simule un run complet) | porte bloque le doublon | `dbt_seed` **skipped** |
+
+**2 vrais bugs trouvés par ce test, invisibles à la simple lecture du
+code :**
+
+- **Auth API par défaut = cookie de session, pas Basic Auth.** Airflow
+  2.10 n'active que `airflow.api.auth.backend.session` par défaut — un
+  `curl -u user:pass` classique (exactement ce que fait
+  `declencher_dag.sh.example`) recevait un 401 silencieux. Corrigé en
+  ajoutant `airflow.api.auth.backend.basic_auth` à
+  `AIRFLOW__API__AUTH_BACKENDS` dans `airflow/docker-compose.yml`.
+- **`DagRun.state == 'success'` même quand tout a été sauté.** Un
+  `ShortCircuitOperator` qui retourne `False` marque les tâches en aval
+  `skipped`, pas `failed` — et un DagRun sans aucune tâche en échec est
+  `success`, y compris quand rien n'a réellement tourné. La 1ʳᵉ version
+  de `_tous_domaines_ingeres_aujourdhui()` vérifiait `DagRun.state`
+  directement : le tout premier déclenchement prématuré de la journée
+  (Ventes, 2h, avant que Finance/Marketing aient fini) aurait
+  définitivement bloqué dbt pour le reste du jour, cron 5h UTC inclus.
+  Corrigé en vérifiant l'état de la **dernière tâche réelle**
+  (`dbt_docs_generate`), pas l'état du DagRun.
 
 > **Pour refaire :** un déclenchement événementiel sans porte de garde
 > est plus dangereux qu'utile — il ferait tourner dbt sur un tiers de la
 > donnée du jour, silencieusement "à l'heure", jamais vu comme une
-> anomalie tant que personne ne compare les volumes. La porte doit être
-> vérifiée en conditions réelles avant l'événementiel lui-même, pas
+> anomalie tant que personne ne compare les volumes. Et la porte
+> elle-même mérite un vrai Airflow jetable pour être vérifiée : les deux
+> bugs ci-dessus ne se voient ni à la lecture, ni au simple parsing du
+> DAG, seulement à l'exécution réelle des 4 scénarios ci-dessus.
 > après.
 
 ## Ordre de construction, si c'était à refaire

@@ -8,6 +8,13 @@ x-airflow-common: &airflow-common
     AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_WEBSERVER_SECRET_KEY}
     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    # Par defaut Airflow 2.10 n'accepte que le backend "session" (cookie de
+    # connexion web) sur l'API REST -- un curl -u user:pass classique
+    # echouerait silencieusement en 403. basic_auth ajoute pour que
+    # ops/declencher_dag.sh.example (appele par n8n) puisse s'authentifier
+    # avec AIRFLOW_ADMIN_USER/PASSWORD, sans exposer l'UI web elle-meme
+    # (toujours liee a 127.0.0.1 uniquement, cf. labels Traefik ci-dessous).
+    AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.session,airflow.api.auth.backend.basic_auth"
     # Lus par dbt/profiles.yml (target "prod") -- role dbt_transform,
     # meme role/mot de passe que pgHero (docs/housekeeping), lecture sur
     # raw + ecriture sur staging/marts qu'il a lui-meme crees.
