@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/valentinratigniet-byte/projet-19-plateforme-entreprise/actions/workflows/ci.yml/badge.svg)](https://github.com/valentinratigniet-byte/projet-19-plateforme-entreprise/actions/workflows/ci.yml)
 
-> **🚧 En construction — Phases 1 à 7 terminées (infra, les 3 domaines, consolidation + analyse transverse, housekeeping, Filiation branché). Phase 8 (Hermès Agent) optionnelle, en standby.** Cadrage complet dans
+> **🚧 En construction — Phases 1 à 7 terminées (infra, les 3 domaines, consolidation + analyse transverse, housekeeping, Filiation branché), puis étendu à 5 domaines le 2026-09-10 (Support Client sur MongoDB, Inventaire/Stock sur Firebird). Phase 8 (Hermès Agent) optionnelle, en standby.** Cadrage complet dans
 > l'issue [valentinratigniet-byte/valentinratigniet-byte#2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
 > (architecture, intérêt par poste cible, doctrine, phasage) — source de
 > vérité, à lire en premier. Ce README sera réécrit au fil de
@@ -12,9 +12,12 @@
 
 ## 🎯 Problème métier
 
-Trois bases "de production" simulées mais délibérément hétérogènes et mal
-fichues (Ventes/Commerce, Finance/Compta, Marketing/Activité) — chacune
-vivante via un simulateur d'usage sur plusieurs mois simulés, pour que le
+Cinq bases "de production" simulées mais délibérément hétérogènes et mal
+fichues — les 3 du cadrage initial (Ventes/Commerce, Finance/Compta,
+Marketing/Activité), puis étendues le 2026-09-10 à Support Client
+(MongoDB, 1re source document store du projet) et Inventaire/Stock
+(Firebird, SGBD embarqué de type scanner d'entrepôt) — chacune vivante
+via un simulateur d'usage sur plusieurs mois simulés, pour que le
 volume et les vrais problèmes (bloat, index inutilisés, doublons)
 émergent de l'usage plutôt que d'être injectés à la main. L'objectif :
 les rendre exploitables — nettoyage, ETL/ELT, entrepôt en modèle
@@ -32,10 +35,12 @@ mais fait seul — voir l'issue de cadrage pour le détail.
 
 ```mermaid
 flowchart LR
-    subgraph Sources["3 bases sources (simulateurs d'usage)"]
+    subgraph Sources["5 bases sources (simulateurs d'usage)"]
         V["Ventes/Commerce"]
         F["Finance/Compta"]
         M["Marketing/Activité"]
+        T["Support Client<br/>(MongoDB)"]
+        S["Inventaire/Stock<br/>(Firebird)"]
     end
     Sources --> ETL["ELT (dbt)\nnettoyage + standardisation"]
     ETL --> DWH["Entrepôt — modèle constellation\ndimensions partagées + faits multiples"]
@@ -317,7 +322,9 @@ projet-19-plateforme-entreprise/
 ├── domaines/
 │   ├── ventes-commerce/      <- README.md, source/, avant.md, decisions.md, regles-transformation.md, apres.md
 │   ├── finance-compta/       <- idem
-│   └── marketing-activite/   <- idem
+│   ├── marketing-activite/   <- idem
+│   ├── support-client/       <- README.md, ingestion.py, rls.sql, test_rls.py, source/ (MongoDB)
+│   └── inventaire-stock/     <- README.md, ingestion.py, rls.sql, test_rls.py, source/ (Firebird)
 ├── dbt/                       <- projet unique, raw -> snapshots (SCD 2) -> staging/{ventes,finance,marketing} -> marts constellation
 │                                  + dbt docs (doc technique auto-générée)
 ├── airflow/                    <- DAG dbt (raw -> snapshots -> staging -> marts -> tests -> slim CI)
@@ -413,15 +420,18 @@ relancer tout le projet. Hermès Agent étend son rôle à la détection de
 rompu) — distinct de la surveillance de fraîcheur qu'il fait déjà.
 
 **Extraction — un adaptateur par type de source, pas par domaine**,
-orchestrés par n8n, réutilisables tels quels pour un futur 4e domaine.
-Chaque domaine s'appuie sur une **vraie techno d'entreprise**, pas un mock
-Postgres déguisé (pas 3× la même base) :
+orchestrés par n8n, réutilisés tels quels pour les 2 domaines ajoutés
+après le cadrage initial (Support Client, Inventaire/Stock). Chaque
+domaine s'appuie sur une **vraie techno d'entreprise**, pas un mock
+Postgres déguisé (pas 5× la même base) :
 
 | Domaine | Techno principale | Pourquoi | Sources secondaires |
 |---|---|---|---|
 | Ventes/Commerce | **AS/400 (DB2 for i)** — simulé en export batch fichier plat, conventions AS/400 authentiques | Très répandu en ERP/gestion commerciale industrie/distribution françaises | **Excel/Sheets manuel** — grille tarifaire/remises tenue à la main par l'équipe commerciale (cellules fusionnées, formules figées, versions parallèles) |
 | Finance/Compta | **SQL Server** (Docker `mcr.microsoft.com/mssql/server`) | Techno standard des ERP compta (Sage, Cegid, SAP Business One) | Export CSV relevés bancaires + **Factur-X** — factures fournisseurs, norme française de facturation électronique (EN 16931/UBL/CII, réforme B2B PDP/PPF), avec coexistence transitoire ancien format/Factur-X |
 | Marketing/Activité | **MySQL** (Docker `mysql:8`) | Techno standard des stacks web/CRM | **API SaaS** (type Mailchimp/Brevo — pagination, clé API, rate-limit, sync incrémentale) + flux JSON d'événements (tracking) |
+| Support Client | **MongoDB** (Docker `mongo:8`) — 1re source document store, aucun schéma fixe (dérive réelle client_id/customer_ref) | Seule source non relationnelle du projet, un vrai test de l'architecture raw/staging/marts au-delà des 3 moteurs SQL | — |
+| Inventaire/Stock | **Firebird** (Docker `firebirdsql/firebird:5`) — SGBD embarqué, conçu pour tourner sans admin dédié | Réellement déployé sur scanners d'entrepôt/postes de caisse ; hétérogène différemment de MongoDB (relationnel léger, pas un document store) | — |
 
 Pas de vraie connexion DB2/400 live (licence IBM i) — et ce n'est de toute
 façon pas comme ça qu'un atelier AS/400 réel partage sa donnée en pratique :
@@ -565,7 +575,37 @@ l'entrepôt à Internet pour qu'un runner GitHub Actions puisse le
 scanner contredirait la doctrine RLS/accès minimal appliquée partout
 ailleurs dans ce projet — un choix de sécurité assumé, pas un oubli.
 
-**Les 3 domaines, la consolidation, le housekeeping et Filiation sont
+**Extension à 2 domaines supplémentaires (2026-09-10) — terminée.**
+Recherche de vraies bases de production hétérogènes, trouvables et
+pertinentes pour un usage ETL/dbt, auto-hébergeables sur le VPS sans
+risque de ressources : 4 candidats évalués (MongoDB, Firebird, Oracle,
+ClickHouse), scope resserré à 2 — Oracle et ClickHouse écartés pour leur
+empreinte RAM (2-8 Go) trop lourde sur un VPS déjà partagé.
+- **Support Client (MongoDB)** — 1re source document store du projet,
+  aucun schéma fixe : dérive réelle simulée entre tickets anciens
+  (`customer_ref`) et récents (`client_id`), résolue par `coalesce` en
+  staging dbt (pas d'adaptateur dbt-mongodb officiel — l'aplatissement
+  JSON `::jsonb`/`->>` se fait après l'ingestion, pas avant). RLS
+  `role_support`/`role_direction`, **5/5 cas vérifiés**. Détail dans
+  [`domaines/support-client/`](domaines/support-client/).
+- **Inventaire/Stock (Firebird)** — SGBD embarqué réellement déployé sur
+  scanners d'entrepôt/postes de caisse (conçu pour tourner sans
+  administrateur dédié) : `TIMESTAMP` sans fuseau, ~50 % des articles en
+  stock négatif (aucune validation temps réel côté scanner), doublons de
+  double-scan mesurés (105/7807 mouvements). RLS
+  `role_stock`/`role_direction`, **11/11 tests dbt**. 3 vrais bugs
+  trouvés et corrigés via la CI réelle (healthcheck cassé, conflit de
+  dépendances `firebird-driver`/`dbt-core` qui rétrogradait dbt en
+  silence, Faker non seedé). Détail dans
+  [`domaines/inventaire-stock/`](domaines/inventaire-stock/).
+
+Les deux domaines suivent le même standard que les 3 premiers : source
+conteneurisée et plafonnée en RAM, simulateur avec défauts réels,
+adaptateur Python, dbt staging/marts, rôle RLS dédié vérifié par
+`SET ROLE` réel, workflow n8n, CI. La porte événementielle Airflow
+(`attendre_tous_les_domaines`) est étendue aux 5 domaines.
+
+**Les 5 domaines, la consolidation, le housekeeping et Filiation sont
 maintenant terminés.** Détail complet de la construction, y compris
 tous les bugs rencontrés et corrigés (idempotence, RLS qui disparaît à
 chaque `dbt run`, casse des identifiants, événements non corrélés entre
