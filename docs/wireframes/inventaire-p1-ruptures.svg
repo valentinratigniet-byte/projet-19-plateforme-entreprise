@@ -1,0 +1,38 @@
+<svg viewBox="0 0 1000 580" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Sans, Arial, sans-serif">
+<rect x="0" y="0" width="1000" height="580" fill="#ffffff"/>
+<rect x="0.5" y="0.5" width="999" height="579" fill="none" stroke="#c7cfc9"/>
+<text x="24" y="34" font-family="IBM Plex Sans, Arial, sans-serif" font-size="20" font-weight="700" fill="#2b3330">Inventaire / Stock -- Ruptures et mouvements</text>
+<text x="976" y="34" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="12" fill="#6b7a73">page 1 / 1</text>
+<line x1="24" y1="46" x2="976" y2="46" stroke="#c7cfc9" stroke-width="1.5"/>
+<text x="976" y="566" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#6b7a73">wireframe -- pas une capture reelle, a remplacer une fois le rapport construit</text>
+<rect x="24" y="54" width="61" height="20" rx="10" fill="#f3f5f3" stroke="#c7cfc9"/><text x="55" y="68" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#6b7a73">Periode</text><rect x="93.4" y="54" width="61" height="20" rx="10" fill="#f3f5f3" stroke="#c7cfc9"/><text x="124" y="68" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#6b7a73">Domaine</text><rect x="162.8" y="54" width="43" height="20" rx="10" fill="#f3f5f3" stroke="#c7cfc9"/><text x="184" y="68" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#6b7a73">Role</text>
+<rect x="24" y="84" width="228" height="70" rx="6" fill="#f3f5f3" stroke="#c7cfc9"/>
+<text x="34" y="102" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="0.4" fill="#1f6f68">SCORECARD</text>
+
+<text x="138.0" y="125.0" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="22" font-weight="700" fill="#2b3330">—</text>
+<text x="138.0" y="144" text-anchor="middle" font-family="IBM Plex Sans, Arial, sans-serif" font-size="10" fill="#6b7a73">% rupture</text>
+
+<rect x="260" y="84" width="228" height="70" rx="6" fill="#f3f5f3" stroke="#c7cfc9"/>
+<text x="270" y="102" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="0.4" fill="#1f6f68">SCORECARD</text>
+
+<text x="374.0" y="125.0" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="22" font-weight="700" fill="#2b3330">—</text>
+<text x="374.0" y="144" text-anchor="middle" font-family="IBM Plex Sans, Arial, sans-serif" font-size="10" fill="#6b7a73">Articles stock negatif</text>
+
+<rect x="496" y="84" width="228" height="70" rx="6" fill="#f3f5f3" stroke="#c7cfc9"/>
+<text x="506" y="102" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="0.4" fill="#1f6f68">SCORECARD</text>
+
+<text x="610.0" y="125.0" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="22" font-weight="700" fill="#2b3330">—</text>
+<text x="610.0" y="144" text-anchor="middle" font-family="IBM Plex Sans, Arial, sans-serif" font-size="10" fill="#6b7a73">Mouvements (periode)</text>
+
+<rect x="732" y="84" width="228" height="70" rx="6" fill="#f3f5f3" stroke="#c7cfc9"/>
+<text x="742" y="102" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="0.4" fill="#1f6f68">SCORECARD</text>
+
+<text x="846.0" y="125.0" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="22" font-weight="700" fill="#2b3330">—</text>
+<text x="846.0" y="144" text-anchor="middle" font-family="IBM Plex Sans, Arial, sans-serif" font-size="10" fill="#6b7a73">Articles suivis</text>
+
+<rect x="24" y="166" width="470" height="300" rx="6" fill="#f3f5f3" stroke="#c7cfc9"/>
+<text x="34" y="184" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="0.4" fill="#1f6f68">BARRES -- NIVEAU DE STOCK PAR ARTICLE (TOP RUPTURES)</text>
+<rect x="53.1" y="346.8" width="61.3" height="103.2" fill="#1f6f68" opacity="0.7"/><rect x="140.7" y="256.5" width="61.3" height="193.5" fill="#1f6f68" opacity="0.7"/><rect x="228.3" y="321.0" width="61.3" height="129.0" fill="#1f6f68" opacity="0.7"/><rect x="315.9" y="217.8" width="61.3" height="232.2" fill="#1f6f68" opacity="0.7"/><rect x="403.5" y="295.2" width="61.3" height="154.8" fill="#1f6f68" opacity="0.7"/><line x1="40" y1="450" x2="478" y2="450" stroke="#6b7a73"/>
+<rect x="506" y="166" width="470" height="300" rx="6" fill="#f3f5f3" stroke="#c7cfc9"/>
+<text x="516" y="184" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="0.4" fill="#1f6f68">BARRES EMPILEES -- MOUVEMENTS ENTREE / SORTIE PAR MOIS</text>
+<rect x="535.1" y="398.4" width="61.3" height="51.6" fill="#1f6f68" opacity="0.75"/><rect x="535.1" y="359.7" width="61.3" height="38.7" fill="#a4501f" opacity="0.75"/><rect x="535.1" y="333.9" width="61.3" height="25.8" fill="#2b7a4b" opacity="0.75"/><rect x="622.7" y="372.6" width="61.3" height="77.4" fill="#1f6f68" opacity="0.75"/><rect x="622.7" y="321.0" width="61.3" height="51.6" fill="#a4501f" opacity="0.75"/><rect x="622.7" y="282.3" width="61.3" height="38.7" fill="#2b7a4b" opacity="0.75"/><rect x="710.3" y="411.3" width="61.3" height="38.7" fill="#1f6f68" opacity="0.75"/><rect x="710.3" y="333.9" width="61.3" height="77.4" fill="#a4501f" opacity="0.75"/><rect x="710.3" y="282.3" width="61.3" height="51.6" fill="#2b7a4b" opacity="0.75"/><rect x="797.9" y="385.5" width="61.3" height="64.5" fill="#1f6f68" opacity="0.75"/><rect x="797.9" y="359.7" width="61.3" height="25.8" fill="#a4501f" opacity="0.75"/><rect x="797.9" y="282.3" width="61.3" height="77.4" fill="#2b7a4b" opacity="0.75"/><rect x="885.5" y="398.4" width="61.3" height="51.6" fill="#1f6f68" opacity="0.75"/><rect x="885.5" y="333.9" width="61.3" height="64.5" fill="#a4501f" opacity="0.75"/><rect x="885.5" y="295.2" width="61.3" height="38.7" fill="#2b7a4b" opacity="0.75"/><line x1="522" y1="450" x2="960" y2="450" stroke="#6b7a73"/></svg>

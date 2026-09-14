@@ -1,0 +1,32 @@
+<svg viewBox="0 0 1000 580" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Sans, Arial, sans-serif">
+<rect x="0" y="0" width="1000" height="580" fill="#ffffff"/>
+<rect x="0.5" y="0.5" width="999" height="579" fill="none" stroke="#c7cfc9"/>
+<text x="24" y="34" font-family="IBM Plex Sans, Arial, sans-serif" font-size="20" font-weight="700" fill="#2b3330">Transverse Direction -- Vue consolidee</text>
+<text x="976" y="34" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="12" fill="#6b7a73">page 1 / 1</text>
+<line x1="24" y1="46" x2="976" y2="46" stroke="#c7cfc9" stroke-width="1.5"/>
+<text x="976" y="566" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#6b7a73">wireframe -- pas une capture reelle, a remplacer une fois le rapport construit</text>
+<rect x="24" y="54" width="61" height="20" rx="10" fill="#f3f5f3" stroke="#c7cfc9"/><text x="55" y="68" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#6b7a73">Periode</text><rect x="93.4" y="54" width="61" height="20" rx="10" fill="#f3f5f3" stroke="#c7cfc9"/><text x="124" y="68" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#6b7a73">Domaine</text><rect x="162.8" y="54" width="43" height="20" rx="10" fill="#f3f5f3" stroke="#c7cfc9"/><text x="184" y="68" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#6b7a73">Role</text>
+<rect x="24" y="84" width="228" height="70" rx="6" fill="#f3f5f3" stroke="#c7cfc9"/>
+<text x="34" y="102" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="0.4" fill="#1f6f68">SCORECARD</text>
+
+<text x="138.0" y="125.0" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="22" font-weight="700" fill="#2b3330">2,51M EUR</text>
+<text x="138.0" y="144" text-anchor="middle" font-family="IBM Plex Sans, Arial, sans-serif" font-size="10" fill="#6b7a73">CA Ventes (dernier mois)</text>
+
+<rect x="260" y="84" width="228" height="70" rx="6" fill="#f3f5f3" stroke="#c7cfc9"/>
+<text x="270" y="102" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="0.4" fill="#1f6f68">SCORECARD</text>
+
+<text x="374.0" y="125.0" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="22" font-weight="700" fill="#2b3330">1,40M EUR</text>
+<text x="374.0" y="144" text-anchor="middle" font-family="IBM Plex Sans, Arial, sans-serif" font-size="10" fill="#6b7a73">Depenses Finance</text>
+
+<rect x="496" y="84" width="228" height="70" rx="6" fill="#f3f5f3" stroke="#c7cfc9"/>
+<text x="506" y="102" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="0.4" fill="#1f6f68">SCORECARD</text>
+
+<text x="610.0" y="125.0" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="22" font-weight="700" fill="#2b3330">32</text>
+<text x="610.0" y="144" text-anchor="middle" font-family="IBM Plex Sans, Arial, sans-serif" font-size="10" fill="#6b7a73">Clics Marketing</text>
+
+<rect x="24" y="166" width="952" height="210" rx="6" fill="#f3f5f3" stroke="#c7cfc9"/>
+<text x="34" y="184" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="0.4" fill="#1f6f68">COURBES INDEXEES -- CA VENTES / DEPENSES FINANCE / CLICS MARKETING, MEME GRILLE MENSUELLE</text>
+<line x1="40" y1="318.0" x2="960" y2="318.0" stroke="#c7cfc9" stroke-dasharray="2 3"/><line x1="40" y1="276.0" x2="960" y2="276.0" stroke="#c7cfc9" stroke-dasharray="2 3"/><line x1="40" y1="234.0" x2="960" y2="234.0" stroke="#c7cfc9" stroke-dasharray="2 3"/><polyline points="40.0,334.8 224.0,318.0 408.0,301.2 592.0,276.0 776.0,250.8 960.0,217.2" fill="none" stroke="#1f6f68" stroke-width="2.25"/><polyline points="40.0,343.2 224.0,326.4 408.0,309.6 592.0,284.4 776.0,259.2 960.0,225.6" fill="none" stroke="#a4501f" stroke-width="2.25"/><polyline points="40.0,276.0 224.0,284.4 408.0,242.4 592.0,267.6 776.0,250.8 960.0,259.2" fill="none" stroke="#7a6a2b" stroke-width="2.25"/>
+<rect x="24" y="388" width="952" height="66" rx="6" fill="#f3f5f3" stroke="#c7cfc9"/>
+<text x="34" y="406" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="0.4" fill="#1f6f68">CONSTAT HONNETE</text>
+<circle cx="46" cy="421.0" r="10" fill="none" stroke="#1f6f68" stroke-width="1.5"/><text x="46" y="425.0" text-anchor="middle" font-family="IBM Plex Serif, Georgia, serif" font-size="13" font-weight="700" fill="#1f6f68">!</text><text x="66" y="418.0" font-family="IBM Plex Sans, Arial, sans-serif" font-size="11" fill="#2b3330">Aucune correlation mesuree entre clics Marketing et CA Ventes (analyse-transverse.md).</text><text x="66" y="433.0" font-family="IBM Plex Sans, Arial, sans-serif" font-size="11" fill="#2b3330">Pas d'entite commune entre les 2 domaines a ce jour -- affiche ici, jamais tu.</text></svg>
