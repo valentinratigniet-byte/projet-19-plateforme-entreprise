@@ -24,6 +24,35 @@ Aucune de ces options n'est construite à ce jour — c'est le premier
 chantier avant le rapport Finance/Direction ci-dessous, pas seulement un
 détail de configuration.
 
+## Standards de densité — ce qui distingue un rapport senior d'un rapport débutant
+
+Recherche web (sources en bas de page) sur des rapports Power BI jugés
+professionnels en finance, vente, marketing, stock et gouvernance de
+données. Le motif qui revient partout, indépendamment du domaine :
+
+- **La règle des 3 secondes.** La personne qui ouvre le rapport doit
+  comprendre la santé du sujet en 3 secondes — 3 à 5 KPI maximum en haut
+  de page, pas 15 cartes. Tout le reste est une page de détail ou un
+  drill-through, jamais entassé sur la page de synthèse.
+- **Lecture en F ou en Z, jamais en grille homogène.** Le KPI le plus
+  important en haut à gauche, avec mise en forme conditionnelle pour une
+  lecture instantanée ; les graphiques de contexte en dessous ; les
+  slicers en bandeau étroit (haut ou droite), jamais éparpillés.
+- **Un visuel par type de décision, pas par type de donnée** :
+  - **carte/scorecard** — un seul chiffre + sa tendance (jamais un
+    tableau pour un KPI unique)
+  - **courbe** — une évolution dans le temps
+  - **waterfall** — un écart budgétaire ou une variance qui se décompose
+    (Prix/Volume, budget vs réalisé) — c'est le visuel qui manque le
+    plus souvent dans un rapport débutant, remplacé à tort par deux
+    barres côte à côte
+  - **matrice** — le détail transactionnel, avec drill-through vers une
+    page dédiée plutôt que noyé sur la page de synthèse
+- **Densité ≠ surcharge.** Un rapport dense professionnel utilise le
+  blanc comme outil de hiérarchie, pas comme espace à combler — la
+  densité vient du nombre de pages et de niveaux de drill-through, pas
+  du nombre de visuels empilés sur une seule page.
+
 ## Rapports proposés
 
 ### 1. Ventes/Commerce — pilotage commercial
@@ -32,6 +61,7 @@ détail de configuration.
 - **Contenu** : CA HT par mois/région, top clients, statuts commande (les 3 canoniques + `INCONNU`, cf. `avant.md`/`apres.md` du domaine), écart budgétaire Prix/Volume déjà calculé dans le mart (pas à recalculer en DAX — la décomposition vit dans dbt)
 - **RLS** : `role_commercial` (accès complet clients), `role_direction` (agrégats seulement)
 - **Point d'attention réel** : les 13 remises Excel non rattachées à un client AS/400 (rapprochement flou `pg_trgm` à 19 % de confiance) doivent apparaître comme non affectées, pas comme un flag caché — cohérent avec la doctrine "flaguer, jamais masquer" du projet.
+- **Gabarit page (densité pro)** : bandeau scorecards (CA HT, nb commandes, panier moyen, % commandes `INCONNU`) → **waterfall** écart Prix/Volume (le mart le calcule déjà, un waterfall le rend lisible en un coup d'œil, contrairement à 2 barres côte à côte) → matrice top clients avec drill-through vers le détail commandes.
 
 ### 2. Finance/Compta — rapprochement factures & trésorerie
 
@@ -39,12 +69,14 @@ détail de configuration.
 - **Contenu** : montant TTC par compte comptable/statut de paiement, **taux de rapprochement par canal** (91 % Factur-X vs 44 % non structuré — l'indicateur le plus actionnable du domaine, cf. `apres.md`), fournisseurs à SIREN invalide à assainir
 - **RLS** : `role_finance` (IBAN visible), `role_direction` (IBAN masqué — 4 colonnes explicites seulement, jamais `SELECT *`), `role_rh` (aucun accès)
 - **Point d'attention réel** : c'est le rapport où le choix RLS ci-dessus n'est pas cosmétique — l'IBAN est une donnée bancaire sensible, le mauvais choix (Import + connecteur unique sans re-filtrage correct) l'exposerait à tous les viewers du rapport.
+- **Gabarit page (densité pro)** : les dashboards AP professionnels (benchmark web) pivotent tous autour d'un **DPO (Days Payable Outstanding)** et d'un **aging des factures non rapprochées** (0-30/30-60/60-90/90+ jours) — deux indicateurs absents du mart aujourd'hui, à ajouter si ce rapport devient prioritaire. Scorecards (montant TTC total, taux de rapprochement Factur-X, taux non structuré) → aging en barres empilées → matrice fournisseurs à SIREN invalide, drill-through vers `fait_rapprochement_factures`.
 
 ### 3. Marketing/Activité — performance campagnes
 
 - **Sources** : `marts.fait_envois`, `marts.fait_performance_campagnes`, `marts.dim_contact`
 - **Contenu** : taux d'ouverture/clic par campagne, cohérence stats SaaS vs MySQL (déjà vérifiée 8/8 côté dbt — le rapport l'affiche, ne la recalcule pas), volumétrie par statut d'envoi normalisé
 - **RLS** : `role_marketing` (accès complet), `role_direction` — **aucun accès aux tables contact**, seulement à l'agrégat `fait_performance_campagnes` (minimisation RGPD déjà appliquée côté entrepôt, à ne pas contourner en exposant `dim_contact` dans ce rapport)
+- **Gabarit page (densité pro)** : les dashboards email marketing sérieux affichent l'entonnoir complet **Envoyés → Ouverts → Clics → Conversions**, pas seulement un taux de clic isolé, et ajoutent le **CTOR** (Click-To-Open Rate — clics rapportés aux ouvertures, pas aux envois) qui distingue un problème de contenu d'un problème d'objet/délivrabilité. Funnel chart en tête → courbe CTOR par campagne dans le temps → carte "cohérence SaaS vs MySQL 8/8" en évidence, pas en petite note.
 
 ### 4. Support Client — SAV
 
@@ -55,6 +87,7 @@ détail de configuration.
 
 - **Sources** : `marts.fait_mouvements_stock`, `marts.dim_stock_articles`
 - **Contenu** : niveau de stock par article, mouvements entrée/sortie, **articles en stock négatif** — défaut réel du système source (Firebird, pas de validation temps réel côté ERP embarqué, cf. `outils.md`) à afficher tel quel, pas à corriger silencieusement dans le rapport.
+- **Gabarit page (densité pro)** : les dashboards inventaire sérieux exposent un **% de rupture** et une liste priorisée d'articles à réapprovisionner, pas seulement un niveau de stock brut — ajouter un ratio ventes/stock disponible si le domaine se connecte un jour à `fait_ventes` (pas fait à ce jour, aucune clé commune vérifiée entre Inventaire/Stock et Ventes/Commerce).
 
 ### 6. Transverse Direction — vue consolidée
 
@@ -67,6 +100,7 @@ détail de configuration.
 - **Sources** : colonnes de flag déjà posées en staging sur les 5 domaines (`siren_valide`, `fournisseur_connu`, `contact_doublon_probable`, `date_format_derive`, `client_doublon_probable`...)
 - **Contenu** : un rapport à part, pas noyé dans les autres — volumétrie de données flaguées par domaine et par type de défaut, pensé pour la personne qui doit *décider* une correction, pas pour la piloter au quotidien
 - **Pourquoi celui-ci en particulier** : c'est le rapport qui rend visible la doctrine "flaguer, jamais corriger en silence" documentée dans `outils.md` — sans lui, les flags existent dans l'entrepôt mais personne ne les regarde.
+- **Gabarit page (densité pro)** : le motif qui revient dans les dashboards de gouvernance sérieux — une **jauge** % de lignes conformes en tête, un **bar chart mensuel** du volume de lignes flaguées par domaine (tendance, pas juste un instantané), et des statuts codés par sévérité plutôt qu'une seule couleur — ici : `flag informatif` (doublon probable, visible mais pas bloquant) vs `flag structurel` (SIREN invalide, `fournisseur_connu = false`).
 
 ## Ordre de construction suggéré
 
@@ -79,3 +113,18 @@ détail de configuration.
 Une fois le premier rapport connecté, `docs/outils.md` et
 `docs/bilan-projet.md` seront mis à jour pour refléter l'état réel — pas
 avant, même discipline que le reste du projet.
+
+## Sources — benchmarks utilisés pour la section densité
+
+- [Power BI Dashboard Design: 12 Best Practices for 2026](https://www.aufaitux.com/blog/power-bi-dashboard-design-best-practices/)
+- [Power BI Dashboard Design Best Practices: Enterprise Guide 2026 — EPC Group](https://www.epcgroup.net/power-bi-dashboard-design-best-practices-enterprise-2026)
+- [Top 21 Power BI Dashboard Examples for Finance and Accounting — GrowExx](https://www.growexx.com/blog/top-power-bi-dashboard-examples-for-finance-and-accounting/)
+- [Power BI Financial Dashboard: Examples, KPIs & Free Templates — Zebra BI](https://zebrabi.com/power-bi-financial-dashboards/)
+- [Accounts Payable Dashboard Power BI Template — Bizinfograph](https://www.bizinfograph.com/blog/accounts-payable-dashboard-power-bi/)
+- [Top 15 Power BI Sales Dashboard Examples for 2026 — ZoomCharts (LinkedIn)](https://www.linkedin.com/pulse/top-15-power-bi-sales-dashboard-examples-2026-industry-zoomcharts-vaftf)
+- [Email Campaign Performance Dashboard — Bold BI](https://www.boldbi.com/dashboard-examples/marketing/email-campaign-performance-dashboard/)
+- [5.2 Email Marketing Analysis (Open/Click/CTOR) — GCom Solutions](https://gcomsolutions.co.uk/guides/power-bi-guides-for-professionals/power-bi-for-marketing-professionals/5-2-email-marketing-analysis/)
+- [Power BI Inventory Management Dashboard Example — ZoomCharts](https://zoomcharts.com/en/microsoft-power-bi-custom-visuals/dashboard-and-report-examples/view/inventory-management-dashboard-april-2025)
+- [Types of Data Quality Dashboards — DQOps](https://dqops.com/docs/dqo-concepts/types-of-data-quality-dashboards/)
+- [Power BI Community Data Stories Gallery — Microsoft Fabric Community](https://community.fabric.microsoft.com/category/pbi_comm_galleries)
+- [SQLBI — Marco Russo & Alberto Ferrari](https://www.sqlbi.com/author/marco-russo/)
