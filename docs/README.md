@@ -8,3 +8,8 @@ pour le détail de cet engagement.
 
 `analyse-transverse.md` (Phase 5) et le volet housekeeping (Phase 6)
 viendront s'ajouter ici également.
+
+**`anatomie-pipeline.md`** — partie théorique : chaque outil du projet
+expliqué de zéro (concept, schéma, cas réel avant/action/après, captures
+réelles). **`pistes-power-bi.md`** — les rapports Power BI à construire,
+pas encore fait à ce jour.

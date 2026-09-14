@@ -617,7 +617,11 @@ non filtrés...), dans
 pour le détail complet de chaque brique. Il ne reste que la Phase 8
 (optionnelle, Hermès Agent) — en standby.
 
-Trois lectures complémentaires : [`docs/construction-etl-erp-dbt.md`](docs/construction-etl-erp-dbt.md)
+Cinq lectures complémentaires : [`docs/anatomie-pipeline.md`](docs/anatomie-pipeline.md)
+reprend chaque outil du projet de zéro — le concept, un schéma, puis un
+cas réel avant/action/après (vrai schéma de table, vraie requête dbt,
+vrais chiffres, vraies captures) — pensé comme partie théorique plutôt
+que journal de bord ; [`docs/construction-etl-erp-dbt.md`](docs/construction-etl-erp-dbt.md)
 reprend ce même guide sous 3 angles transversaux (ETL, ERP, dbt) plutôt
 que phase par phase, avec un ordre de construction recommandé si c'était
 à refaire ; [`docs/dbt-possibilites-integrations.md`](docs/dbt-possibilites-integrations.md)
@@ -630,7 +634,10 @@ liste chaque outil utilisé — lien officiel, tâche, pourquoi ce choix
 plutôt qu'une alternative, comment il est concrètement déclenché — et les
 règles transverses qui s'appliquent indépendamment de l'outil (lecture
 seule sur toute source externe, idempotence vérifiée en relançant, RLS
-posée en `post_hook`...).
+posée en `post_hook`...) ; [`docs/pistes-power-bi.md`](docs/pistes-power-bi.md)
+liste les rapports Power BI à construire (pas encore fait à ce jour) —
+7 rapports proposés, contre quels marts précis, et le point RLS
+Postgres → Power BI à trancher avant le premier.
 
 ---
 
