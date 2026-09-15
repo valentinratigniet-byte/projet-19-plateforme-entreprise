@@ -2,7 +2,7 @@
 <rect x="0" y="0" width="1000" height="580" fill="#ffffff"/>
 <rect x="0.5" y="0.5" width="999" height="579" fill="none" stroke="#c7cfc9"/>
 <text x="24" y="34" font-family="IBM Plex Sans, Arial, sans-serif" font-size="20" font-weight="700" fill="#2b3330">Ventes / Commerce -- Vue d'ensemble</text>
-<text x="976" y="34" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="12" fill="#6b7a73">page 1 / 2</text>
+<text x="976" y="34" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="12" fill="#6b7a73">page 1 / 4</text>
 <line x1="24" y1="46" x2="976" y2="46" stroke="#c7cfc9" stroke-width="1.5"/>
 <text x="976" y="566" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#6b7a73">wireframe -- pas une capture reelle, a remplacer une fois le rapport construit</text>
 <rect x="24" y="54" width="61" height="20" rx="10" fill="#f3f5f3" stroke="#c7cfc9"/><text x="55" y="68" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#6b7a73">Periode</text><rect x="93.4" y="54" width="61" height="20" rx="10" fill="#f3f5f3" stroke="#c7cfc9"/><text x="124" y="68" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#6b7a73">Domaine</text><rect x="162.8" y="54" width="43" height="20" rx="10" fill="#f3f5f3" stroke="#c7cfc9"/><text x="184" y="68" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#6b7a73">Role</text>
@@ -16,7 +16,7 @@
 <text x="270" y="102" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="0.4" fill="#1f6f68">SCORECARD</text>
 
 <text x="374.0" y="125.0" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="22" font-weight="700" fill="#2b3330">2 320</text>
-<text x="374.0" y="144" text-anchor="middle" font-family="IBM Plex Sans, Arial, sans-serif" font-size="10" fill="#6b7a73">Commandes</text>
+<text x="374.0" y="144" text-anchor="middle" font-family="IBM Plex Sans, Arial, sans-serif" font-size="10" fill="#6b7a73">Commandes actives</text>
 
 <rect x="496" y="84" width="228" height="70" rx="6" fill="#f3f5f3" stroke="#c7cfc9"/>
 <text x="506" y="102" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="0.4" fill="#1f6f68">SCORECARD</text>
@@ -31,7 +31,7 @@
 <text x="846.0" y="144" text-anchor="middle" font-family="IBM Plex Sans, Arial, sans-serif" font-size="10" fill="#6b7a73">Statut INCONNU</text>
 
 <rect x="24" y="166" width="470" height="300" rx="6" fill="#f3f5f3" stroke="#c7cfc9"/>
-<text x="34" y="184" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="0.4" fill="#1f6f68">WATERFALL -- ECART BUDGET PRIX / VOLUME</text>
+<text x="34" y="184" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="0.4" fill="#1f6f68">WATERFALL -- ECART BUDGET PRIX / VOLUME (VUE SYNTHESE)</text>
 <rect x="44.0" y="294.0" width="47.3" height="75.0" fill="#1f6f68" opacity="0.75"/><rect x="130.0" y="231.5" width="47.3" height="137.5" fill="#a4501f" opacity="0.75"/><rect x="216.0" y="356.5" width="47.3" height="50.0" fill="#2b7a4b" opacity="0.75"/><rect x="302.0" y="194.0" width="47.3" height="212.5" fill="#a4501f" opacity="0.75"/><rect x="388.0" y="369.0" width="47.3" height="37.5" fill="#1f6f68" opacity="0.75"/><line x1="40" y1="444" x2="478" y2="444" stroke="#6b7a73" stroke-width="1"/>
 <rect x="506" y="166" width="470" height="300" rx="6" fill="#f3f5f3" stroke="#c7cfc9"/>
 <text x="516" y="184" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="0.4" fill="#1f6f68">MATRICE -- TOP CLIENTS (DRILL-THROUGH -&gt; DETAIL COMMANDES)</text>
