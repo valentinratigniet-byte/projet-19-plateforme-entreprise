@@ -175,14 +175,22 @@ dbt génère un catalogue navigable (`manifest.json` + `catalog.json`) :
 lignage colonne-à-colonne, tests attachés à chaque modèle, contrats de
 schéma, freshness des sources.
 
-24 modèles · 51/51 tests + 3/3 unitaires · 12/12 sources avec freshness ·
-3 modèles sous contrat · 3 modèles incrémentaux.
+**30 modèles** (15 staging + 15 marts, extension Support Client/Inventaire-
+Stock incluse) · **69 data tests + 3 tests unitaires** · 15/15 sources avec
+freshness · 3 modèles sous contrat · 3 modèles incrémentaux — remesuré le
+2026-09-16 en relançant l'entrepôt complet, corrige le chiffre "24 modèles"
+resté affiché depuis l'extension à 5 domaines.
+
+Captures ci-dessous prises à l'époque des 24 modèles (3 domaines) — pas
+republiées depuis l'extension, pour ne pas laisser croire à une capture
+plus récente qu'elle ne l'est. Le lignage/catalogue réel sur 30 modèles
+n'a pas encore été recapturé.
 
 ![dbt docs — page d'accueil](screenshots/dbtdocs-overview.png)
 *Page d'accueil du catalogue — doc block expliquant comment lire le projet.*
 
 ![dbt docs — lignage complet](screenshots/dbtdocs-lineage.png)
-*Lignage des 24 modèles — l'ordre de build que dbt déduit tout seul du graphe de `ref()`.*
+*Lignage des 24 modèles (état à 3 domaines) — l'ordre de build que dbt déduit tout seul du graphe de `ref()`.*
 
 ![dbt docs — contrat fait_ecritures](screenshots/dbtdocs-contract-fait-ecritures.png)
 *`fait_ecritures` — badge **incremental** + **CONTRACT: Enforced**, 9 colonnes typées.*
@@ -193,6 +201,22 @@ schéma, freshness des sources.
 > C'est en vérifiant la page `fait_ventes` qu'un vrai `dbt run` a détecté
 > `_ingested_at` déclaré `TIMESTAMP` au lieu de `TIMESTAMPTZ` — corrigé
 > avant la capture, pas après.
+
+**Nouveau piège trouvé le 2026-09-16, en revérifiant le chiffre de tests
+sur un entrepôt rechargé de zéro** : 2 des 3 tests unitaires
+(`ut_stg_finance_fournisseurs_siren_normalisation`,
+`ut_stg_ventes_commandes_date_as400_fallback`) échouent avec
+`ghcr.io/dbt-labs/dbt-postgres:1.8.latest` (dbt-core 1.8.3) — erreur
+`column "FournisseurID" does not exist`. La table fixture que dbt
+matérialise pour un test unitaire à partir des lignes `given:` du YAML ne
+préserve pas la casse des identifiants entre guillemets doubles
+(`"FournisseurID"`, `"CLICOD"`) que le modèle réel attend — un problème de
+version de dbt, pas du modèle : `outils.md` documente dbt-core 1.12 pour
+ce projet, une version différente de celle utilisée pour cette
+revérification. **Non reproduit avec dbt-core 1.12** faute d'image
+officielle disponible pour cette version au moment du test (`:latest`
+résout en 1.9.0) — signalé ici tel quel plutôt que masqué, à revérifier
+si le projet est un jour rebuild avec la version exacte documentée.
 
 ## 5. Row-Level Security : ligne et colonne
 
