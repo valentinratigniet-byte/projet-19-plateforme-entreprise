@@ -4,28 +4,33 @@
 [`anatomie-pipeline.md`](anatomie-pipeline.md#9-ce-qui-nest-délibérément-pas-montré-ici)) :
 Power BI est **prêt côté entrepôt** (schéma `marts`, RLS déjà posée en
 `post_hook` dbt) mais **pas encore connecté** à ce projet. Ce document liste
-les **8 rapports** à construire, contre quels marts précis, le point
-technique à trancher avant le premier (le mapping RLS Postgres → Power BI),
-et un **wireframe par page** (schéma de mise en page, pas une capture réelle
+les **8 rapports** à construire, contre quels marts précis, le mapping
+RLS Postgres → Power BI (tranché le 2026-09-16, cf. plus bas), et un
+**wireframe par page** (schéma de mise en page, pas une capture réelle
 — à remplacer par de vraies captures une fois chaque rapport construit dans
 Power BI Desktop).
 
-## Point technique à trancher avant tout rapport
+## Point technique — tranché le 2026-09-16
 
 La RLS de ce projet est posée **côté Postgres**, par rôle (`role_finance`,
 `role_direction`, `role_rh`, `role_commercial`, `role_marketing` —
-`GRANT`/`CREATE POLICY` en post_hook, cf. `anatomie-pipeline.md#5`). Deux
-façons de la faire respecter depuis Power BI, pas équivalentes :
+`GRANT`/`CREATE POLICY` en post_hook, cf. `anatomie-pipeline.md#5`). Trois
+façons de la faire respecter depuis Power BI ont été comparées :
 
 | Option | Principe | Coût | Recommandé pour |
 |---|---|---|---|
-| **Import + RLS Power BI dupliquée** | Un connecteur unique (`dbt_transform` en lecture, comme pgHero), RLS *re-déclarée* dans Power BI (rôles + filtres DAX qui reproduisent les policies Postgres) | Double maintenance : toute évolution d'une policy Postgres doit être répercutée à la main côté Power BI | Rapports figés, faible fréquence de refresh, premier rapport à construire |
-| **DirectQuery + rôle Postgres par viewer** | Chaque utilisateur Power BI se connecte avec ses propres identifiants Postgres (ou via RLS Power BI qui pousse un `SET ROLE` dynamique) | Nécessite soit des comptes Postgres nominatifs, soit `EffectiveUserName`/paramètre de connexion dynamique — plus proche de la doctrine "vérifié par `SET ROLE`" déjà appliquée ailleurs dans le projet | Rapport Finance (IBAN) et Direction, où la RLS n'est pas cosmétique |
-| **Vue restreinte par rôle** | Une vue Postgres par rôle consommateur (`marts.dim_fournisseur_direction` sans `iban`), Power BI se connecte à la vue, pas à la table | Un objet Postgres de plus à maintenir en synchro avec le modèle dbt | Alternative si le mapping dynamique s'avère trop lourd à opérer |
+| **Import + RLS Power BI dupliquée** ✅ **retenu pour le rapport 1 (Ventes)** | Un connecteur unique (`dbt_transform` en lecture, comme pgHero), RLS *re-déclarée* dans Power BI (rôles + filtres DAX qui reproduisent les policies Postgres) | Double maintenance : toute évolution d'une policy Postgres doit être répercutée à la main côté Power BI | Rapports figés, faible fréquence de refresh — le premier rapport, pour établir le gabarit sans complexité de connexion |
+| **DirectQuery + rôle Postgres par viewer** ✅ **retenu pour le rapport 2 (Finance)** | Chaque utilisateur Power BI se connecte avec ses propres identifiants Postgres (ou via RLS Power BI qui pousse un `SET ROLE` dynamique) | Nécessite soit des comptes Postgres nominatifs, soit `EffectiveUserName`/paramètre de connexion dynamique — plus proche de la doctrine "vérifié par `SET ROLE`" déjà appliquée ailleurs dans le projet | Rapport Finance (IBAN) et Direction, où la RLS n'est pas cosmétique — ne pas dupliquer la logique colonne en DAX, la faire vraiment respecter par Postgres |
+| **Vue restreinte par rôle** | Une vue Postgres par rôle consommateur (`marts.dim_fournisseur_direction` sans `iban`), Power BI se connecte à la vue, pas à la table | Un objet Postgres de plus à maintenir en synchro avec le modèle dbt | Filet de secours si le `SET ROLE` dynamique s'avère trop lourd à opérer en pratique sur le rapport 2 |
 
-Aucune de ces options n'est construite à ce jour — c'est le premier
-chantier avant le rapport Finance/Direction ci-dessous, pas seulement un
-détail de configuration.
+**Décision** : Import pour le rapport 1 (pas de donnée sensible, vitesse
+de mise en place prioritaire), DirectQuery + rôle par viewer pour le
+rapport 2 dès que l'IBAN est en jeu — jamais de RLS dupliquée en DAX sur
+une colonne réellement sensible, la doctrine du projet ("vérifié par
+`SET ROLE`, jamais juste déclaré") s'applique aussi côté Power BI. Les
+deux mécanismes restent à construire concrètement dans Power BI Desktop
+(hors de portée d'une session sans accès GUI/entrepôt live) — cette
+section documente la décision, pas encore son exécution.
 
 ## Standards de densité — ce qui distingue un rapport senior d'un rapport débutant
 
@@ -474,7 +479,7 @@ neuf.
 
 ## Ordre de construction suggéré
 
-1. Trancher le point RLS ci-dessus (probablement Import + RLS dupliquée pour le premier rapport, le temps de vérifier le modèle — DirectQuery ensuite pour Finance).
+1. ✅ Point RLS tranché (Import pour le rapport 1, DirectQuery + rôle par viewer pour le rapport 2 — cf. ci-dessus).
 2. **Ventes/Commerce** (rapport 1) — domaine le plus simple, pas de donnée sensible, sert de gabarit réutilisable pour les suivants (structure de pages, mesures DAX en `DIVIDE`).
 3. **Finance/Compta** (rapport 2) — premier rapport où la RLS colonne (IBAN) compte réellement.
 4. **Marketing/Activité** (rapport 3) — dernier domaine "simple" dont `dim_contact`/`fait_ecritures`/`dim_client`/`dim_fournisseur` sont nécessaires avant la Gouvernance qualité.
