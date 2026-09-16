@@ -11,8 +11,9 @@ décision coût 0€, cf. [issue #2](https://github.com/valentinratigniet-byte/v
   `marts` (business-ready, owner `dbt_transform`), `public` (par défaut,
   inutilisé).
 - **Modèle constellation réel** : `marts.dim_date` partagée entre les 3
-  domaines (`fait_ventes`, `fait_ecritures`, `fait_envois` s'y rattachent
-  tous par valeur de date) — pas 3 étoiles isolées.
+  domaines historiques (`fait_ventes`, `fait_ecritures`, `fait_envois` s'y
+  rattachent tous par valeur de date) — pas 3 étoiles isolées. Étendu à
+  5 domaines le 2026-09-10 (Support Client, Inventaire/Stock).
 - **Marts transverses** (`marts.ecart_budget_ventes`,
   `marts.synthese_mensuelle_transverse`) — cf.
   [`docs/analyse-transverse.md`](../docs/analyse-transverse.md).
@@ -29,10 +30,12 @@ décision coût 0€, cf. [issue #2](https://github.com/valentinratigniet-byte/v
 
 ## Dictionnaire de données
 
-Généré via `dbt docs generate` — catalogue complet (24 modèles, 3
-snapshots, 51 tests, 12 sources) + graphe de lineage. Vérifié
-fonctionnel, alimente cette section (pas de duplication manuelle du
-dictionnaire).
+Généré via `dbt docs generate` — catalogue complet (**30 modèles, 3
+snapshots, 69 data tests + 3 tests unitaires, 15 sources**, remesuré le
+2026-09-16 sur un entrepôt local rechargé — cf.
+[`docs/bilan-projet.md`](../docs/bilan-projet.md)) + graphe de lineage.
+Vérifié fonctionnel, alimente cette section (pas de duplication manuelle
+du dictionnaire).
 
 ## Déploiement
 

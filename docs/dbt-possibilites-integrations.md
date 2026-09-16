@@ -24,7 +24,7 @@ Deux idées suffisent à comprendre pourquoi dbt existe :
   chaque transformation est un fichier `.sql` versionné dans git, testable,
   documenté, avec ses dépendances déclarées explicitement via `ref()` et
   `source()`. dbt compile ce graphe et l'exécute dans le bon ordre — ce
-  projet a 24 modèles, dbt sait tout seul dans quel ordre les construire.
+  projet a 30 modèles, dbt sait tout seul dans quel ordre les construire.
 
 C'est tout. Le reste de ce document détaille ce que ça permet concrètement.
 

@@ -537,9 +537,12 @@ généré via `dbt docs generate` (vérifié). dbt **51/51 tests** sur le
 projet entier.
 
 <details>
-<summary>📸 Graphe de lineage dbt réel (constellation, 24 modèles)</summary>
+<summary>📸 Graphe de lineage dbt réel (constellation, 24 modèles — capture prise à ce stade, 3 domaines)</summary>
 
 ![dbt docs — graphe de lineage complet](docs/screenshots/dbtdocs-lineage.png)
+
+Capture non republiée depuis l'extension à 5 domaines (2026-09-10) — le
+projet compte désormais 30 modèles, cf. plus bas.
 
 </details>
 
@@ -598,6 +601,18 @@ empreinte RAM (2-8 Go) trop lourde sur un VPS déjà partagé.
   dépendances `firebird-driver`/`dbt-core` qui rétrogradait dbt en
   silence, Faker non seedé). Détail dans
   [`domaines/inventaire-stock/`](domaines/inventaire-stock/).
+
+**État courant, remesuré le 2026-09-16** (entrepôt local entièrement
+rechargé, 5 domaines réingérés, `dbt seed/snapshot/run/test/docs
+generate` réellement rejoués) : **30 modèles** (15 staging + 15 marts),
+**69 data tests + 3 tests unitaires**, 70/72 passent avec dbt-core 1.8.3
+— 2 tests unitaires en erreur (piège de casse d'identifiant entre
+guillemets dans les fixtures dbt, détail dans
+[`docs/anatomie-pipeline.md`](docs/anatomie-pipeline.md#4-tests-contrats-de-schéma-catalogue)).
+Ces chiffres remplacent le "24 modèles / 51 tests" cité plus haut dans
+les phases 1 et 5 — celles-ci restent inchangées comme journal du
+projet à 3 domaines, l'état global à jour vit dans
+[`docs/bilan-projet.md`](docs/bilan-projet.md).
 
 Les deux domaines suivent le même standard que les 3 premiers : source
 conteneurisée et plafonnée en RAM, simulateur avec défauts réels,
