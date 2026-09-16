@@ -202,21 +202,19 @@ n'a pas encore été recapturé.
 > `_ingested_at` déclaré `TIMESTAMP` au lieu de `TIMESTAMPTZ` — corrigé
 > avant la capture, pas après.
 
-**Nouveau piège trouvé le 2026-09-16, en revérifiant le chiffre de tests
-sur un entrepôt rechargé de zéro** : 2 des 3 tests unitaires
-(`ut_stg_finance_fournisseurs_siren_normalisation`,
-`ut_stg_ventes_commandes_date_as400_fallback`) échouent avec
-`ghcr.io/dbt-labs/dbt-postgres:1.8.latest` (dbt-core 1.8.3) — erreur
-`column "FournisseurID" does not exist`. La table fixture que dbt
-matérialise pour un test unitaire à partir des lignes `given:` du YAML ne
-préserve pas la casse des identifiants entre guillemets doubles
-(`"FournisseurID"`, `"CLICOD"`) que le modèle réel attend — un problème de
-version de dbt, pas du modèle : `outils.md` documente dbt-core 1.12 pour
-ce projet, une version différente de celle utilisée pour cette
-revérification. **Non reproduit avec dbt-core 1.12** faute d'image
-officielle disponible pour cette version au moment du test (`:latest`
-résout en 1.9.0) — signalé ici tel quel plutôt que masqué, à revérifier
-si le projet est un jour rebuild avec la version exacte documentée.
+**Revérifié le 2026-09-16 sur un entrepôt rechargé de zéro, avec la
+version exacte documentée** (`dbt-core 1.12.0` + `dbt-postgres 1.11.0`,
+installés via `pip install --only-binary=:all: "dbt-postgres==1.11.*"` —
+la première tentative, avec l'image officielle `ghcr.io/dbt-labs/
+dbt-postgres:1.8.latest`, résolvait en dbt-core 1.8.3 et faisait échouer
+2 tests unitaires sur 3 avec `column "FournisseurID" does not exist` —
+un faux positif dû à la mauvaise version, pas un bug du projet ; corrigé
+en installant la version exacte plutôt qu'un tag `:latest` approximatif) :
+**72/72 tests passent** (69 data tests + 3 tests unitaires). Le piège
+réel à retenir n'est pas dans le modèle dbt mais dans la reproduction :
+un tag d'image `:1.8.latest` ou `:latest` ne garantit pas la version
+documentée du projet, vérifier `dbt --version` avant de tirer une
+conclusion d'un échec de test.
 
 ## 5. Row-Level Security : ligne et colonne
 

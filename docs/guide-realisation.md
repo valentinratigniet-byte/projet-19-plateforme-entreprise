@@ -672,3 +672,44 @@ production réel, les 3 workflows n8n d'ingestion et 7 workflows n8n
 transverses supplémentaires, tous effectivement actifs et testés (pas
 seulement exportés/écrits). Il ne reste que la Phase 8 (optionnelle,
 Hermès Agent — en standby).
+
+## Addendum (2026-09-16) — reconstruction complète pour revérifier les chiffres dbt
+
+Un chiffre cité par une session externe ("24 modèles, 51 tests, 14,22s")
+s'est révélé introuvable dans `dbt/target/run_results.json` (qui
+reflétait un run différent et plus tardif) — plutôt que de recopier un
+chiffre non vérifiable, reconstruction complète de l'entrepôt local :
+5 sources Docker (SQL Server, MySQL, MongoDB, Firebird) + entrepôt
+Postgres, régénération des exports synthétiques (Faker seed=19,
+déterministe — mêmes volumes exacts retrouvés : 314 clients, 866
+écritures, 206 contacts, 640 tickets, 7807 mouvements), réingestion des
+5 domaines, puis `dbt seed → snapshot → run → test → docs generate`
+réellement rejoués deux fois.
+
+**Piège réel rencontré, à retenir pour toute reconstruction future** :
+la première tentative a utilisé l'image officielle
+`ghcr.io/dbt-labs/dbt-postgres:1.8.latest` (citée dans `outils.md`) —
+elle résout en **dbt-core 1.8.3**, pas 1.12 comme documenté par
+ailleurs. Avec cette version, **2 tests unitaires sur 3 échouent**
+(`column "FournisseurID" does not exist` — la fixture que dbt matérialise
+depuis le YAML `given:` ne préserve pas la casse d'un identifiant entre
+guillemets doubles). Ressemblait à un vrai bug de modèle ; s'est avéré
+être un faux positif de version. Confirmé en installant la version exacte
+(`pip install --only-binary=:all: "dbt-postgres==1.11.*"` → dbt-core
+1.12.0/dbt-postgres 1.11.0, correspondant exactement aux lignes `Running
+with dbt=1.12.0`/`Registered adapter: postgres=1.11.0` retrouvées dans
+`dbt/logs/dbt.log`, preuve que cette version a réellement servi à
+construire le projet) : **72/72 tests passent**.
+
+**Chiffres réels, confirmés deux fois (1.8.3 puis 1.12.0), le compte de
+modèles et de tests ne dépend pas de la version dbt, seul le résultat
+des 2 tests unitaires en dépendait** : 30 modèles (15 staging + 15
+marts), 3 snapshots, 69 data tests + 3 tests unitaires, 15 sources.
+Temps avec la version exacte (1.12.0/1.11.0) : seed 0,31s · snapshot
+0,61s · run 2,52s · test 2,44s — ~5,9s au total, entrepôt à volume de
+test, pas une mesure de montée en charge.
+
+> **Pour refaire** : un tag d'image Docker `:1.8.latest` ou `:latest`
+> ne garantit jamais la version réellement documentée d'un projet —
+> toujours vérifier `dbt --version` avant de conclure qu'un test qui
+> échoue révèle un bug du modèle plutôt qu'un écart d'outillage.

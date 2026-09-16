@@ -19,11 +19,11 @@ phase par phase.
 | Sources réelles | AS/400 · SQL Server (ERP) · MySQL + API SaaS · MongoDB · Firebird |
 | Modèles dbt | **30** (15 staging + 15 marts) — remesuré le 2026-09-16, corrige un chiffre resté à 24 depuis l'extension à 5 domaines |
 | Snapshots SCD2 | 3 |
-| Tests dbt | **69 data tests + 3 tests unitaires**, 70/72 passent avec dbt-core 1.8.3 (image `ghcr.io/dbt-labs/dbt-postgres:1.8.latest`) — 2 tests unitaires en erreur, cf. [`anatomie-pipeline.md#4`](anatomie-pipeline.md#4-tests-contrats-de-schéma-catalogue) |
+| Tests dbt | **69 data tests + 3 tests unitaires, 72/72 passent** — vérifié avec la version exacte documentée (dbt-core 1.12.0 + dbt-postgres 1.11.0). Détail dans [`anatomie-pipeline.md#4`](anatomie-pipeline.md#4-tests-contrats-de-schéma-catalogue) |
 | Sources avec freshness déclarée | 15/15 |
 | Modèles sous contrat de schéma | 3 (un par domaine, ceux consommés par la BI) |
 | Modèles incrémentaux | 3 |
-| **Temps d'exécution dbt** (mesuré le 2026-09-16, entrepôt local rechargé, 5 domaines réels réingérés) | seed 0,44 s · snapshot 0,46 s · run (30 modèles) 3,39 s · test (72 tests) 4,13 s — **~8,4 s au total**. Volume trop petit pour en tirer une tendance de scalabilité, mesure de référence uniquement. |
+| **Temps d'exécution dbt** (mesuré le 2026-09-16, entrepôt local rechargé, 5 domaines réels réingérés, dbt-core 1.12.0/dbt-postgres 1.11.0 — version exacte documentée) | seed 0,31 s · snapshot 0,61 s · run (30 modèles) 2,52 s · test (72/72 PASS) 2,44 s — **~5,9 s au total**. Volume trop petit pour en tirer une tendance de scalabilité, mesure de référence uniquement. |
 | Workflows n8n actifs | 14 (3 ingestion + 7 ops + 4 hérités du Projet 18) |
 | Phases terminées | 7 sur 8 (la 8ᵉ, Hermès Agent, optionnelle, en standby) |
 | Coût | 0 € (infra VPS déjà engagée pour le Projet 18) |

@@ -97,7 +97,9 @@ tentative future d'attribution marketing → revenu.
 
 Le dictionnaire global est généré via `dbt docs generate` (catalogue +
 graphe de lineage complet sur les 24 modèles / 3 snapshots / 51 tests du
-projet) — vérifié fonctionnel, alimente `entrepot/`. La connectique de
+projet — état à 3 domaines, cette phase ; 30 modèles/72 tests depuis
+l'extension à 5 domaines, cf. [`bilan-projet.md`](bilan-projet.md)) —
+vérifié fonctionnel, alimente `entrepot/`. La connectique de
 visualisation (Power BI/Metabase) se branche sur les marts déjà exposés
 avec RLS (`marts.*`), aucune configuration supplémentaire requise côté
 entrepôt.

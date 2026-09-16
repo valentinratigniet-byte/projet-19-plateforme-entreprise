@@ -604,14 +604,12 @@ empreinte RAM (2-8 Go) trop lourde sur un VPS déjà partagé.
 
 **État courant, remesuré le 2026-09-16** (entrepôt local entièrement
 rechargé, 5 domaines réingérés, `dbt seed/snapshot/run/test/docs
-generate` réellement rejoués) : **30 modèles** (15 staging + 15 marts),
-**69 data tests + 3 tests unitaires**, 70/72 passent avec dbt-core 1.8.3
-— 2 tests unitaires en erreur (piège de casse d'identifiant entre
-guillemets dans les fixtures dbt, détail dans
-[`docs/anatomie-pipeline.md`](docs/anatomie-pipeline.md#4-tests-contrats-de-schéma-catalogue)).
-Ces chiffres remplacent le "24 modèles / 51 tests" cité plus haut dans
-les phases 1 et 5 — celles-ci restent inchangées comme journal du
-projet à 3 domaines, l'état global à jour vit dans
+generate` réellement rejoués avec la version exacte documentée —
+dbt-core 1.12.0 + dbt-postgres 1.11.0) : **30 modèles** (15 staging +
+15 marts), **69 data tests + 3 tests unitaires, 72/72 passent**. Ces
+chiffres remplacent le "24 modèles / 51 tests" cité plus haut dans les
+phases 1 et 5 — celles-ci restent inchangées comme journal du projet à
+3 domaines, l'état global à jour vit dans
 [`docs/bilan-projet.md`](docs/bilan-projet.md).
 
 Les deux domaines suivent le même standard que les 3 premiers : source
