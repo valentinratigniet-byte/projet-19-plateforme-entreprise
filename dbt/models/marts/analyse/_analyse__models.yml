@@ -12,3 +12,13 @@ models:
     columns:
       - name: mois
         tests: [not_null, unique]
+
+  - name: synthese_qualite_donnees
+    description: "Consolidation des flags de qualite deja poses dans dim_client/dim_fournisseur/fait_ecritures/dim_contact -- une ligne par (domaine, flag), photo de l'etat courant (pas de serie temporelle, 2 des 4 tables sources n'ont aucune colonne de date)."
+    columns:
+      - name: flag_id
+        tests: [not_null, unique]
+      - name: severite
+        tests:
+          - accepted_values:
+              values: ["structurel", "informatif"]

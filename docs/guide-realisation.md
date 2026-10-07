@@ -713,3 +713,354 @@ test, pas une mesure de montée en charge.
 > ne garantit jamais la version réellement documentée d'un projet —
 > toujours vérifier `dbt --version` avant de conclure qu'un test qui
 > échoue révèle un bug du modèle plutôt qu'un écart d'outillage.
+
+## Power BI — Rapport 1 (Ventes/Commerce)
+
+Plan complet (sources, RLS, DAX, wireframes) posé dans
+`docs/pistes-power-bi.md` le 2026-09-16. Section ci-dessous = ce qui a
+été **réellement construit et vérifié** le 2026-09-19, via Power BI
+Desktop connecté à l'entrepôt VPS (tunnel SSH sur le port `5440`,
+`dbt_transform` en lecture, mode Import) et le MCP `powerbi-modeling`.
+
+**Piège d'infra réel trouvé avant même d'ouvrir Power BI** : les 12
+tables de `marts` (hors le seed `budget_ventes_2026`) appartenaient à
+`postgres` (le superuser) au lieu de `dbt_transform` — un `dbt run`
+antérieur avait dû s'exécuter sous le mauvais rôle Postgres (chaque run
+fait DROP+CREATE, le rôle exécutant devient propriétaire). Conséquence en
+cascade : `dbt_transform` n'avait plus aucun accès aux tables RLS
+(`dim_client`, `fait_ventes`...) — un propriétaire contourne sa propre
+RLS, un non-propriétaire avec un simple `GRANT SELECT` table y reste
+soumis. Un `GRANT SELECT` seul n'a donc pas suffi (0 ligne visible malgré
+la table listée) ; corrigé par `ALTER TABLE ... OWNER TO dbt_transform`
+sur les 12 tables, ce qui restaure le contournement RLS implicite prévu
+par la conception d'origine. À surveiller : pourquoi le DAG Airflow
+(`PGUSER: dbt_transform` dans `airflow/docker-compose.yml`) a pu tourner
+sous `postgres` au moins une fois — pas encore élucidé.
+
+**Modèle construit via le MCP** :
+- 4 tables importées (`fait_ventes` 13 col., `dim_client` 8 col.,
+  `ecart_budget_ventes` 10 col., `dim_date` 7 col.) — colonnes conformes
+  au contract dbt vérifiées une par une.
+- Les 4 tables de dates auto-générées par Power BI supprimées (même
+  piège que le Projet 18 RTE Eco2mix), tables renommées sans le préfixe
+  `marts `.
+- 2 relations (`fait_ventes[clicod] → dim_client[clicod]`,
+  `fait_ventes[date_commande] → dim_date[date_jour]`), `dim_date` marquée
+  table de dates, hiérarchie **Calendrier** (Année → Trimestre → Mois,
+  `nom_mois` trié par `mois` via `sortByColumn`, pas alphabétiquement).
+- 12 mesures DAX créées (`CA HT`, `CA Net`, `Commandes Actives`,
+  `Panier Moyen`, `% Statut Inconnu`, `% Clients Doublon Probable`,
+  `% Remises Rapprochées`, + 5 mesures `SUM()` sur `ecart_budget_ventes`).
+
+**Bug DAX réel trouvé et corrigé en testant** (pas supposé fonctionnel) :
+`% Statut Inconnu` renvoyait `BLANK` au lieu de `0 %` alors que la donnée
+est correcte (aucune commande au statut `INCONNU` dans ce jeu de
+données, seulement `LIVREE`/`VALIDEE`/`ANNULEE`). Cause : `DIVIDE(x, y,
+0)` ne substitue son 3ᵉ argument que si le **dénominateur** est
+blank/0 — pas si le **numérateur** l'est, et `CALCULATE(COUNTROWS(...))`
+sur un filtre à 0 ligne correspondante est remonté `BLANK` par ce moteur
+plutôt que `0`. Corrigé avec l'idiome `+ 0` sur le numérateur avant la
+division (`BLANK + 0 = 0` en DAX, contrairement à `DIVIDE`'s comportement
+sur un numérateur blank).
+
+**RLS vérifiée par impersonation réelle** (requêtes DAX exécutées avec
+`Roles: [...]`, pas juste des policies déclarées) :
+
+| Rôle | Lignes `fait_ventes` visibles | CA HT |
+|---|---|---|
+| `role_rh` | 0 | — |
+| `role_commercial` | 2 052 (hors `ANNULEE`) | 13 461 557,41 € |
+| `role_finance` / `role_direction` | 2 320 (tout) | 15 092 645,63 € |
+
+Chiffres cohérents avec les mesures déjà connues côté Postgres (Phase 2 —
+CA total 15 092 645,63 € HT, 2 052 commandes actives hors annulées).
+
+**Wireframes mis à jour avec les vrais chiffres** (`docs/wireframes/
+ventes-p1-vue-ensemble.svg`) : "Commandes actives" corrigé de 2 320 (total,
+faux) à 2 052 (actives, réel), "Panier moyen" de 6 505 € (estimation) à
+7 349 € (réel, `CA Net / Commandes Actives`). Les pages 3/4 (314 clients,
+28 doublons) étaient déjà exactes, revérifiées telles quelles.
+
+**Point ouvert, résolu le 2026-09-19** : la mesure `% Remises Rapprochées`
+(définie dans `pistes-power-bi.md`, reprise telle quelle) calcule 3 / 314
+clients (0,96 %) — un ratio différent du "3/16 (19 %)" affiché sur le
+wireframe page 3. Les deux chiffres sont vrais mais répondent à des
+questions différentes (base clients vs base remises sources). Résolu en
+important aussi `staging.stg_ventes_remises` dans le modèle (même bug de
+propriétaire `postgres` au lieu de `dbt_transform` que les marts, corrigé
+de la même façon sur les 12 vues `staging`) : **17 remises Excel brutes,
+16 valides** (1 formule cassée `#REF!` exclue, confirme le "16" du
+wireframe), nouvelle mesure `% Remises Excel Rapprochées` =
+3/16 = **18,75 %** (≈ 19 %, exact match avec le wireframe). Les 2 mesures
+coexistent dans le modèle, chacune avec une description explicite de son
+dénominateur pour éviter la confusion.
+
+**Piège technique rencontré en important cette table** : le M-query
+généré par défaut (navigation `Source{[Schema=...,Item=...]}[Data]`,
+identique au pattern des 4 premières tables) échouait avec "la clé ne
+correspondait à aucune ligne dans la table" même après correction des
+droits Postgres — probablement un cache d'introspection Power Query resté
+périmé. Contourné avec une requête SQL directe (`PostgreSQL.Database(...,
+[Query="SELECT * FROM staging.stg_ventes_remises"])`) plutôt que la
+navigation par schéma/table.
+
+**Reste à faire, hors du MCP (couche visuelle uniquement)** : sauvegarder
+le `.pbix` (encore "Sans titre" au moment de la construction du modèle),
+poser les 4 pages/visuels dans Power BI Desktop en suivant les wireframes,
+tester "Afficher en tant que" sur `role_rh` pour confirmer visuellement
+l'accès refusé.
+
+## Power BI — Rapport 2 (Finance/Compta)
+
+Construit et vérifié le 2026-09-20, même méthode que le rapport 1 (fichier
+`.pbix` séparé, MCP `powerbi-modeling`, tunnel SSH + `dbt_transform`).
+
+**Changement de plan tranché en construisant** : `pistes-power-bi.md`
+prévoyait DirectQuery + un rôle Postgres par viewer pour protéger l'IBAN.
+Abandonné après vérification : `role_finance`/`role_direction` sont
+`NOLOGIN` (rappel du rapport 1), et le MCP `powerbi-modeling` **ne
+supporte pas la sécurité au niveau colonne** (confirmé via `Help` sur
+`security_role_operations` — seulement filtre de lignes ou table
+entière on/off, pas de `ColumnPermissions`). Remplacé par une solution
+plus simple et au moins aussi sûre : **`iban` n'est jamais importée dans
+ce rapport**, ni au niveau du modèle ni dans la requête M source
+(`Table.RemoveColumns` ajouté explicitement dans le partition M-query,
+pas juste une suppression de colonne côté modèle qui serait réécrasée au
+refresh suivant). La colonne reste consultable uniquement dans Postgres
+via `role_finance` (déjà vérifié par `SET ROLE` en Phase 3).
+
+**Modèle** : 4 tables (`fait_ecritures` 10 col., `dim_fournisseur` 4 col.
+sans IBAN, `fait_rapprochement_factures` 10 col., `dim_date` 8 col. avec
+`nom_trimestre` posée dès la construction cette fois). 4 relations (2
+auto-détectées par Power BI sur `fournisseur_id`, 2 posées manuellement
+vers `dim_date` sur `date_ecriture`/`date_facture`). Hiérarchie
+Calendrier identique au rapport 1. 8 mesures créées, toutes avec le
+correctif `+ 0` du rapport 1 appliqué dès l'écriture (plus besoin de
+le redécouvrir).
+
+**Chiffres réels vérifiés** : Montant TTC 7 240 138,82 € · 80 fournisseurs
+· 1,25 % SIREN invalides (cohérent avec le correctif de mesure du
+2026-09-05, 10 %→1,3 %) · 1,64 % écritures fournisseur inconnu · **taux
+de rapprochement Factur-X 90,8 % vs non structuré 44,4 %** (cohérent avec
+les 91 %/44 % déjà mesurés en Phase 3).
+
+**Vraie limite de données trouvée en vérifiant** (pas un bug DAX) :
+`Ecart Jours Moyen (rapprochées)` = **0** sur les 577 lignes rapprochées
+ET sur toute la table (`MAX(ecart_jours)` = 0 partout) — le simulateur
+Finance dérive date facture et date écriture du même événement canonique
+(`generer_evenements.py`), sans délai de traitement réaliste modélisé.
+Documenté dans la description de la mesure plutôt que masqué ou retiré.
+
+**RLS vérifiée par impersonation** : `role_rh` → 0 ligne sur les 3 tables
+métier. `role_finance`/`role_direction` → accès complet, identique
+(puisque `iban` n'existe nulle part dans ce fichier, les deux rôles voient
+exactement les mêmes colonnes de `dim_fournisseur`).
+
+**Reste à faire** : sauvegarder en `dashboard-finance-compta.pbix`,
+poser les 3 pages de visuels (wireframes `docs/wireframes/finance-p*.svg`).
+
+## Power BI — Rapport 3 (Marketing/Activité)
+
+Construit et vérifié le 2026-09-20, même méthode que les rapports 1/2.
+
+**Extension décidée avant l'import** : `fait_evenements_web` (funnel web)
+ajoutée aux 3 tables prévues par `pistes-power-bi.md`, sur confirmation
+de Valentin -- permet un vrai funnel email → clic → visite site en page 2,
+pas exploité dans le plan initial. 5 tables importées au total
+(`fait_envois` 7 col., `fait_performance_campagnes` 12 col., `dim_contact`
+7 col., `fait_evenements_web` 9 col., `dim_date` 7 col.).
+
+**Colonne calculée nécessaire** : `fait_evenements_web[horodatage]` est un
+timestamp, pas relatable directement à `dim_date[date_jour]` (date pure)
+-- ajout de `date_evenement = DATE(YEAR(horodatage), MONTH(horodatage),
+DAY(horodatage))` pour permettre la relation.
+
+**5 relations** (3 auto-détectées par Power BI dont une nouvelle,
+`fait_envois[campagne_id] → fait_performance_campagnes[campagne_id]`,
+utile pour croiser envois individuels et performance agrégée ; 2 posées
+manuellement vers `dim_date`). Hiérarchie Calendrier identique (avec
+`nom_trimestre` dès la construction).
+
+**8 mesures créées**, toutes avec le correctif `+ 0`. Chiffres réels
+vérifiés : 755 envois, taux ouverture 61,1 %, taux clic 32,1 %, CTOR
+52,5 %, **100 % de cohérence SaaS/MySQL** (8/8 campagnes, confirme la
+Phase 4), 206 contacts, 5,8 % doublons probables, 0 % statut inconnu.
+
+**RLS vérifiée par impersonation, nuance réelle du domaine** :
+`role_direction` n'a **aucun accès** (pas une ligne filtrée, un déni
+complet) à `fait_envois`/`dim_contact`/`fait_evenements_web` (données à
+caractère personnel), mais accès complet à `fait_performance_campagnes`
+(l'agrégat). Vérifié concrètement : `role_direction` → 0 ligne
+`fait_envois`, 8 lignes `fait_performance_campagnes`. `role_rh` → 0 ligne
+partout, y compris sur l'agrégat (contrairement à `role_direction`).
+
+**Reste à faire** : sauvegarder en `dashboard-marketing-activite.pbix`,
+poser les pages de visuels.
+
+## Infra Support Client + Inventaire/Stock déployée sur le VPS (2026-09-24)
+
+**Écart réel trouvé avant de construire les rapports 4/5** : ces deux
+domaines (MongoDB + Firebird, étendus le 2026-09-10) étaient documentés
+"terminés et vérifiés" mais seulement via la **CI GitHub Actions**
+(conteneurs éphémères) — jamais réellement déployés sur l'entrepôt
+persistant du VPS. `\dt marts.*`/`\dt raw.*` confirmaient leur absence
+totale, et aucun conteneur MongoDB/Firebird n'existait sur le serveur.
+Déployé pour de bon avant de poursuivre :
+
+1. Fichiers manquants copiés par `scp` (domaines, modèles dbt staging/
+   marts, adaptateurs `mongodb.py`/`firebird.py`, `requirements.txt`,
+   **`Dockerfile`** — oublié au premier passage, a cassé le build de
+   l'image d'ingestion, `libfbclient2` jamais installée).
+2. Rôles Postgres `role_support`/`role_stock` créés (`NOLOGIN`, même
+   principe que les autres domaines).
+3. Conteneurs `projet19-mongodb`/`projet19-firebird` déployés
+   (`mem_limit` explicite sur les deux, `127.0.0.1` uniquement), rejoints
+   au réseau `entrepot_default`.
+4. Image `projet19-ingestion` reconstruite (`--no-cache`) avec
+   `pymongo`/`firebird-driver`.
+5. Simulateurs rejoués (640 tickets MongoDB, 40 articles/7807 mouvements
+   Firebird dont 20 en stock négatif) puis ingestion réelle vers `raw`.
+6. **`dbt build` complet** (103/103 tests PASS, 30 modèles) — bloqué une
+   première fois par un piège de permissions : les dossiers copiés par
+   `scp` héritaient de `drwx------` (root uniquement), invisibles pour
+   l'utilisateur `50000:0` du conteneur Airflow — corrigé avec
+   `chmod -R 755`, silencieusement ignorés par dbt sans erreur explicite
+   avant ça (piège à retenir pour tout futur transfert de fichiers vers
+   ce conteneur).
+
+`fait_tickets` (640 lignes), `dim_stock_articles` (40),
+`fait_mouvements_stock` (7702, dédoublonnage ~2% confirmé) existent
+maintenant réellement sur l'entrepôt VPS, pas seulement en CI.
+
+## Power BI — Rapport 4 (Support Client)
+
+Construit et vérifié le 2026-09-24. 2 tables (`fait_tickets` 12 col.,
+`dim_date` 8 col. avec `nom_trimestre`), 1 relation
+(`date_creation → date_jour`), 5 mesures. Chiffres réels : 640 tickets,
+242 ouverts, délai moyen résolution 5,5 jours, satisfaction moyenne 3,84,
+65,8 % ancien schéma MongoDB (cohérent avec le ~2/3 attendu du
+simulateur). RLS vérifiée par impersonation : `role_rh` → 0 ligne.
+**Reste à faire** : sauvegarder, poser les 2 pages de visuels
+(`docs/wireframes/support-p*.svg`).
+
+## Power BI — Rapport 5 (Inventaire/Stock)
+
+Construit et vérifié le 2026-09-24. 3 tables (`dim_stock_articles` 7
+col., `fait_mouvements_stock` 6 col. + colonne calculée
+`date_mouvement_jour` pour relier le TIMESTAMP à `dim_date`,
+`dim_date`), 2 relations, 7 mesures. Chiffres réels : 40 articles,
+**50 % en stock négatif** (20/40, cohérent), 21 sous seuil de réappro,
+72 542 entrées / 72 089 sorties, -78 net sur les ajustements
+d'inventaire (**signé positif/négatif par construction du simulateur**,
+pas une anomalie — documenté dans la mesure). RLS vérifiée par
+impersonation : `role_rh` → 0 ligne. **Reste à faire** : sauvegarder,
+poser les 2 pages de visuels (`docs/wireframes/inventaire-p*.svg`).
+
+## Power BI — Rapport 6 (Transverse Direction)
+
+Construit et vérifié le 2026-09-24. 4 tables (`synthese_mensuelle_
+transverse` 7 col., `ecart_budget_ventes` 10 col. autonome comme au
+rapport 1, `fait_ecritures` 10 col., `dim_date`), 1 relation
+(`fait_ecritures[date_ecriture] → dim_date[date_jour]`). 5 mesures,
+dont `Depenses Finance HT` qui recalcule explicitement depuis
+`fait_ecritures[montant_ht_eur]` (jamais `synthese_mensuelle_
+transverse[depenses_ttc]`, en TTC).
+
+Chiffres réels vérifiés, cohérents avec les rapports 1 et 3 (même
+entrepôt, recoupement croisé) : CA Ventes 13 461 557,41 € (= CA hors
+ANNULEE du rapport 1), taux clic marketing 32,05 % (= rapport 3),
+dépenses Finance HT 6 033 449,03 €, marge brute approx. 7 428 108,38 €.
+RLS vérifiée par impersonation : `role_rh` → 0 ligne, `role_finance`/
+`role_direction`/`role_commercial`/`role_marketing` → accès complet
+(mart déjà agrégé, rien à filtrer par ligne).
+
+**Reste à faire** : sauvegarder, poser les 2 pages de visuels
+(`docs/wireframes/transverse-p*.svg`).
+
+## Power BI — Rapport 8 (P&L simplifié)
+
+Construit et vérifié le 2026-09-24. 3 tables (`fait_ventes`,
+`fait_ecritures`, `dim_date`), 2 relations vers `dim_date`. 7 mesures,
+dont `Charges (Achats HT Finance)` explicitement en HT (jamais
+`montant_ttc_eur`).
+
+Chiffres réels vérifiés, cohérents avec le rapport 6 (même donnée
+sous-jacente) : Produits 13 461 557,41 € · Charges 6 033 449,03 € ·
+Résultat approx. 7 428 108,38 € · Marge 55,2 % · postes 401100/401200/
+401300 = 2 157 144,59 € / 1 979 580,46 € / 1 896 723,98 € (somme exacte
+au total des charges). RLS vérifiée par impersonation : `role_rh`/
+`role_commercial`/`role_marketing` → 0 ligne, `role_finance`/
+`role_direction` → accès complet.
+
+**Reste à faire** : sauvegarder, poser les 2 pages de visuels
+(`docs/wireframes/pnl-p*.svg`) — la page 2 (définitions et limites)
+doit rappeler que ce n'est PAS un P&L PCG complet (limite déjà
+documentée dans `pistes-power-bi.md`).
+
+## Mart de consolidation `marts.synthese_qualite_donnees` (2026-09-24)
+
+Débloque le rapport 7 (Gouvernance qualité), identifié dans le plan comme
+le seul nécessitant un modèle dédié. `dbt/models/marts/analyse/
+synthese_qualite_donnees.sql` — une ligne par (domaine, flag), **photo
+de l'état courant, pas une série temporelle** (`dim_client`/
+`dim_fournisseur` n'ont aucune colonne de date, inventer un mois de
+rattachement aurait été fabriqué plutôt que mesuré). 4 flags
+consolidés : `Ventes.est_doublon_probable`, `Finance.siren_valide`,
+`Finance.fournisseur_connu`, `Marketing.contact_doublon_probable`.
+
+**Bug réel trouvé et corrigé en vérifiant contre le rapport 2** :
+`siren_valide` peut être `NULL` (SIREN totalement absent), pas
+seulement `FALSE` (mal formaté). `NOT siren_valide` en SQL (logique
+ternaire) exclut silencieusement les `NULL` du `FILTER` → 0 fournisseur
+invalide trouvé au lieu de 1. Corrigé avec `siren_valide IS NOT TRUE`
+(capture `FALSE` et `NULL`). Sans le recoupement avec le chiffre déjà
+mesuré au rapport 2 (1,25 %), ce bug serait passé inaperçu — les 3
+autres flags vérifiés sains (dérivés de comparaisons qui ne peuvent
+jamais être `NULL`).
+
+3/3 tests dbt PASS. Déployé sur le VPS avec le même processus que les
+autres ajouts (scp, `chmod 755` sur le dossier copié — sinon invisible
+pour l'utilisateur non-root du conteneur Airflow, piège désormais
+connu —, `dbt build --select`).
+
+## Power BI — Rapport 7 (Gouvernance qualité)
+
+Construit et vérifié le 2026-09-24. 5 tables : `synthese_qualite_
+donnees` (le nouveau mart) + les 4 tables sources pour le drill-through
+de la page 2 (`dim_client`, `dim_fournisseur` **sans IBAN**,
+`fait_ecritures`, `dim_contact`) — décision de Valentin d'inclure la
+page 2, pas juste le résumé agrégé.
+
+**RLS reconstituée à partir des frontières déjà établies dans chaque
+domaine d'origine**, pas une nouvelle règle inventée pour ce rapport
+transverse — une vraie erreur trouvée et corrigée en vérifiant (j'avais
+d'abord refusé `dim_client` à `role_finance`, alors que
+`dim_client.sql` l'autorise explicitely) :
+
+| Table | role_finance | role_direction | role_commercial | role_marketing |
+|---|---|---|---|---|
+| `synthese_qualite_donnees` | ✅ | ✅ | ✅ | ✅ |
+| `dim_client` | ✅ | ✅ | ✅ | ❌ |
+| `dim_fournisseur` (sans IBAN) | ✅ | ✅ | ❌ | ❌ |
+| `fait_ecritures` | ✅ | ✅ | ❌ | ❌ |
+| `dim_contact` | ❌ | ❌ | ❌ | ✅ |
+
+(`role_rh` : aucun accès sur les 5 tables.)
+
+Vérifié par impersonation réelle sur les 3 rôles les plus permissifs :
+`role_finance`/`role_direction` → 314/80/855 lignes sur
+`dim_client`/`dim_fournisseur`/`fait_ecritures`, 0 sur `dim_contact` ;
+`role_marketing` → l'inverse exact (206 sur `dim_contact`, 0 partout
+ailleurs).
+
+**Chiffre clé réel** : **96,2 % de lignes conformes** (55 flaguées sur
+1455, tous domaines/flags confondus — grains mélangés, indicateur de
+santé global approximatif, pas une moyenne pondérée rigoureuse).
+
+**Reste à faire** : sauvegarder, poser les 3 pages de visuels
+(`docs/wireframes/gouvernance-p*.svg`).
+
+**Les 8 rapports du plan `pistes-power-bi.md` ont maintenant tous un
+modèle Power BI construit et vérifié** (semantique + RLS + mesures) —
+il ne reste que la couche visuelle (pages/visuels dans Power BI Desktop)
+sur l'ensemble des 8, hors du périmètre du MCP.

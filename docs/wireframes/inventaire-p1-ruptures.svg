@@ -9,25 +9,25 @@
 <rect x="24" y="84" width="228" height="70" rx="6" fill="#f3f5f3" stroke="#c7cfc9"/>
 <text x="34" y="102" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="0.4" fill="#1f6f68">SCORECARD</text>
 
-<text x="138.0" y="125.0" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="22" font-weight="700" fill="#2b3330">—</text>
+<text x="138.0" y="125.0" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="22" font-weight="700" fill="#2b3330">50 %</text>
 <text x="138.0" y="144" text-anchor="middle" font-family="IBM Plex Sans, Arial, sans-serif" font-size="10" fill="#6b7a73">% rupture</text>
 
 <rect x="260" y="84" width="228" height="70" rx="6" fill="#f3f5f3" stroke="#c7cfc9"/>
 <text x="270" y="102" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="0.4" fill="#1f6f68">SCORECARD</text>
 
-<text x="374.0" y="125.0" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="22" font-weight="700" fill="#2b3330">—</text>
+<text x="374.0" y="125.0" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="22" font-weight="700" fill="#2b3330">20</text>
 <text x="374.0" y="144" text-anchor="middle" font-family="IBM Plex Sans, Arial, sans-serif" font-size="10" fill="#6b7a73">Articles stock negatif</text>
 
 <rect x="496" y="84" width="228" height="70" rx="6" fill="#f3f5f3" stroke="#c7cfc9"/>
 <text x="506" y="102" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="0.4" fill="#1f6f68">SCORECARD</text>
 
-<text x="610.0" y="125.0" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="22" font-weight="700" fill="#2b3330">—</text>
+<text x="610.0" y="125.0" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="22" font-weight="700" fill="#2b3330">21</text>
 <text x="610.0" y="144" text-anchor="middle" font-family="IBM Plex Sans, Arial, sans-serif" font-size="10" fill="#6b7a73">Articles sous seuil</text>
 
 <rect x="732" y="84" width="228" height="70" rx="6" fill="#f3f5f3" stroke="#c7cfc9"/>
 <text x="742" y="102" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="0.4" fill="#1f6f68">SCORECARD</text>
 
-<text x="846.0" y="125.0" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="22" font-weight="700" fill="#2b3330">—</text>
+<text x="846.0" y="125.0" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="22" font-weight="700" fill="#2b3330">40</text>
 <text x="846.0" y="144" text-anchor="middle" font-family="IBM Plex Sans, Arial, sans-serif" font-size="10" fill="#6b7a73">Articles suivis</text>
 
 <rect x="24" y="166" width="470" height="300" rx="6" fill="#f3f5f3" stroke="#c7cfc9"/>

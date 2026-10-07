@@ -26,7 +26,6 @@ exposures:
       un rafraîchissement déclenché, pas un flux permanent.
     owner:
       name: "Valentin Ratigniet"
-      email: "valentinratigniet@gmail.com"
     depends_on:
       - ref('dim_client')
       - ref('fait_ventes')
