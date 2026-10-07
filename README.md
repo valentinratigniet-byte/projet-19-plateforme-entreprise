@@ -27,9 +27,8 @@ multiple, et un volet **housekeeping** (index/bloat) intégré nativement,
 pas en périphérie.
 
 **Ambition assumée** : le plus gros projet solo du portfolio à ce jour,
-comparable en ampleur au projet binôme
-[projet-baptiste-valentin](https://github.com/valentinratigniet-byte/projet-baptiste-valentin)
-mais fait seul — voir l'issue de cadrage pour le détail.
+comparable en ampleur à la
+[data platform contrôle de gestion](https://github.com/valentinratigniet-byte/data-platform-controle-gestion) — voir l'issue de cadrage pour le détail.
 
 ## 🗂️ Architecture cible (cf. issue #2)
 
