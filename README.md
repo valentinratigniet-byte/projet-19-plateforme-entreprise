@@ -2,13 +2,11 @@
 
 [![CI](https://github.com/valentinratigniet-byte/projet-19-plateforme-entreprise/actions/workflows/ci.yml/badge.svg)](https://github.com/valentinratigniet-byte/projet-19-plateforme-entreprise/actions/workflows/ci.yml)
 
-> **🚧 En construction — Phases 1 à 7 terminées (infra, les 3 domaines, consolidation + analyse transverse, housekeeping, Filiation branché), puis étendu à 5 domaines le 2026-09-10 (Support Client sur MongoDB, Inventaire/Stock sur Firebird). Phase 8 (Hermès Agent) optionnelle, en standby.** Cadrage complet dans
-> l'issue [valentinratigniet-byte/valentinratigniet-byte#2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2)
-> (architecture, intérêt par poste cible, doctrine, phasage) — source de
-> vérité, à lire en premier. Ce README sera réécrit au fil de
-> l'implémentation pour ne documenter que ce qui est **réellement construit
-> et vérifié**, jamais le plan seul (même discipline que le
-> [Projet 18](https://github.com/valentinratigniet-byte/projet-18-monitoring-energie-rte)).
+> **✅ Terminé** : 5 domaines (Ventes, Finance, Marketing, Support Client sur MongoDB, Inventaire/Stock sur
+> Firebird), entrepôt en constellation, RLS multi-rôles, DAG dbt sous Airflow, 8 rapports Power BI, CI verte.
+> Seule une extension optionnelle (Phase 8, agent IA) n'est pas réalisée. Cadrage d'origine (architecture,
+> doctrine, phasage) : issue [#2](https://github.com/valentinratigniet-byte/valentinratigniet-byte/issues/2).
+> Ce README ne documente que ce qui est **construit et vérifié**.
 
 ## 🎯 Problème métier
 
@@ -30,7 +28,7 @@ pas en périphérie.
 comparable en ampleur à la
 [data platform contrôle de gestion](https://github.com/valentinratigniet-byte/data-platform-controle-gestion) — voir l'issue de cadrage pour le détail.
 
-## 🗂️ Architecture cible (cf. issue #2)
+## 🗂️ Architecture
 
 ```mermaid
 flowchart LR
