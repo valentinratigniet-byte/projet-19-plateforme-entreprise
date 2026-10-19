@@ -1,0 +1,236 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Plateforme data multi-domaines",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      692
+    ],
+    "legend": {
+      "mode": "hidden"
+    }
+  },
+  "stages": [
+    {
+      "label": "Sources (5 domaines)"
+    },
+    {
+      "label": "Ingestion"
+    },
+    {
+      "label": "Transformation"
+    },
+    {
+      "label": "Entrepôt"
+    },
+    {
+      "label": "Exploitation"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "as400",
+      "type": "external",
+      "label": "AS/400 DB2",
+      "sublabel": "Ventes/Commerce",
+      "stage": 0,
+      "row": 0,
+      "tag": "fichier plat",
+      "yOffset": -24
+    },
+    {
+      "id": "sqlserver",
+      "type": "database",
+      "label": "SQL Server",
+      "sublabel": "Finance/Compta",
+      "stage": 0,
+      "row": 1,
+      "tag": "+ CSV banque",
+      "yOffset": -24
+    },
+    {
+      "id": "mysql",
+      "type": "database",
+      "label": "MySQL + SaaS",
+      "sublabel": "Marketing/Activité",
+      "stage": 0,
+      "row": 2,
+      "tag": "OAuth2",
+      "brand": "mysql",
+      "yOffset": -24
+    },
+    {
+      "id": "mongo",
+      "type": "database",
+      "label": "MongoDB",
+      "sublabel": "Support Client",
+      "stage": 0,
+      "row": 3,
+      "tag": "JSON",
+      "brand": "mongodb",
+      "yOffset": -24
+    },
+    {
+      "id": "firebird",
+      "type": "database",
+      "label": "Firebird",
+      "sublabel": "Inventaire/Stock",
+      "stage": 0,
+      "row": 4,
+      "tag": "embarqué",
+      "yOffset": -24
+    },
+    {
+      "id": "n8nA",
+      "type": "messagebus",
+      "label": "n8n",
+      "sublabel": "3 domaines initiaux",
+      "stage": 1,
+      "row": 1,
+      "tag": "adaptateurs",
+      "yOffset": -24
+    },
+    {
+      "id": "n8nB",
+      "type": "messagebus",
+      "label": "n8n",
+      "sublabel": "extension 09/2026",
+      "stage": 1,
+      "row": 3,
+      "tag": "adaptateurs",
+      "yOffset": -24
+    },
+    {
+      "id": "dbt",
+      "type": "backend",
+      "label": "dbt + Airflow",
+      "sublabel": "raw → staging → marts",
+      "stage": 2,
+      "row": 2,
+      "tag": "DAG",
+      "brand": "apache-airflow",
+      "yOffset": -24
+    },
+    {
+      "id": "dwh",
+      "type": "database",
+      "label": "Postgres",
+      "sublabel": "entrepôt constellation",
+      "stage": 3,
+      "row": 2,
+      "tag": "VPS Coolify",
+      "brand": "postgresql",
+      "yOffset": -24
+    },
+    {
+      "id": "rls",
+      "type": "security",
+      "label": "RLS multi-rôles",
+      "sublabel": "par rôle métier",
+      "stage": 3,
+      "row": 1,
+      "tag": "row-level",
+      "yOffset": -24
+    },
+    {
+      "id": "powerbi",
+      "type": "frontend",
+      "label": "Power BI",
+      "sublabel": "8 rapports + Metabase",
+      "stage": 4,
+      "row": 1,
+      "tag": "PBIR",
+      "yOffset": -24
+    },
+    {
+      "id": "filiation",
+      "type": "backend",
+      "label": "Filiation",
+      "sublabel": "lignage KPI",
+      "stage": 4,
+      "row": 3,
+      "tag": "137 nœuds",
+      "yOffset": -24
+    }
+  ],
+  "flows": [
+    {
+      "from": "as400",
+      "to": "n8nA",
+      "label": "export batch",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "top",
+      "via": [
+        [
+          315,
+          133
+        ]
+      ]
+    },
+    {
+      "from": "sqlserver",
+      "to": "n8nA",
+      "label": "SQL + CSV",
+      "variant": "default",
+      "route": "straight"
+    },
+    {
+      "from": "mysql",
+      "to": "n8nA",
+      "label": "webhook + polling",
+      "variant": "emphasis"
+    },
+    {
+      "from": "mongo",
+      "to": "n8nB",
+      "label": "documents",
+      "variant": "default",
+      "route": "straight"
+    },
+    {
+      "from": "firebird",
+      "to": "n8nB",
+      "label": "mouvements",
+      "variant": "default"
+    },
+    {
+      "from": "n8nA",
+      "to": "dbt",
+      "label": "raw.*",
+      "variant": "emphasis"
+    },
+    {
+      "from": "n8nB",
+      "to": "dbt",
+      "label": "raw.*",
+      "variant": "emphasis"
+    },
+    {
+      "from": "dbt",
+      "to": "dwh",
+      "label": "faits + dims",
+      "variant": "emphasis"
+    },
+    {
+      "from": "dwh",
+      "to": "rls",
+      "label": "politiques",
+      "variant": "security"
+    },
+    {
+      "from": "rls",
+      "to": "powerbi",
+      "label": "vue filtrée",
+      "variant": "security"
+    },
+    {
+      "from": "dwh",
+      "to": "filiation",
+      "label": "scan lignage",
+      "variant": "dashed"
+    }
+  ]
+}

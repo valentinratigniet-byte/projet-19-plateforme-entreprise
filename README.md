@@ -30,6 +30,10 @@ comparable en ampleur à la
 
 ## 🗂️ Architecture
 
+![Schéma d'architecture](docs/architecture.png)
+
+**[Ouvrir le schéma interactif](https://htmlpreview.github.io/?https://github.com/valentinratigniet-byte/projet-19-plateforme-entreprise/blob/main/docs/architecture.html)** (zoom, recherche, suivi des flux, export PNG/SVG). Généré avec [Archify](https://github.com/tt-a1i/archify) depuis [`docs/architecture.archify.json`](docs/architecture.archify.json).
+
 ```mermaid
 flowchart LR
     subgraph Sources["5 bases sources (simulateurs d'usage)"]
