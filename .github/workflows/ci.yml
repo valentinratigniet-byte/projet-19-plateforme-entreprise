@@ -261,3 +261,14 @@ jobs:
           SAAS_BASE_URL: http://localhost:5000
           SAAS_CLIENT_ID: projet19
         run: python test_saas_integration.py
+
+      - name: Diagnostic en cas d'echec (etat et logs des conteneurs)
+        if: failure()
+        run: |
+          docker ps -a --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
+          for c in $(docker ps -a --format '{{.Names}}'); do
+            echo "::group::$c"
+            docker inspect "$c" --format '{{if .State.Health}}{{range .State.Health.Log}}{{.ExitCode}} {{.Output}}{{end}}{{end}}' | tail -c 2000
+            docker logs --tail 40 "$c" 2>&1
+            echo "::endgroup::"
+          done
