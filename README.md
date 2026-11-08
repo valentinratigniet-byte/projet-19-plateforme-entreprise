@@ -349,6 +349,14 @@ que ce soit vérifié, pas supposé :
 Le VPS lui-même est un coût déjà engagé pour le Projet 18, pas une
 dépense nouvelle.
 
+**État du VPS (novembre 2026).** L'entrepôt Postgres, le pipeline dbt
+quotidien (Airflow), n8n, Metabase et pgHero tournent chaque jour. Les
+4 sources simulées (SQL Server, MySQL, MongoDB, Firebird) sont arrêtées
+pour libérer la mémoire du serveur partagé : leurs données sont déjà
+chargées dans l'entrepôt et leurs volumes sont conservés, ce qui permet
+de les relancer. La CI les redémarre toutes à chaque push et rejoue le
+pipeline complet de bout en bout.
+
 **`docs/guide-realisation.md` et `docs/pieges-*.md`** — écrits **au fil de
 l'implémentation réelle**, pas rédigés à l'avance : un guide de
 reproduction complet du projet étape par étape (infra → domaines →
