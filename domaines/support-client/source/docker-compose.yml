@@ -1,6 +1,8 @@
 services:
   mongodb:
-    image: mongo:8
+    # Version figée : depuis fin octobre 2026, mongo:8 (8.3) et 8.0 refusent de démarrer sur les noyaux
+    # Linux >= 6.19 (SERVER-121912), dont celui des runners GitHub ; 8.2 démarre. Testé le 08/11/2026.
+    image: mongo:8.2
     container_name: projet19-mongodb
     # Plafond explicite -- MongoDB dimensionne son cache WiredTiger a 50%
     # de (RAM hote - 1 Go) par defaut, ce qui suppose implicitement qu'il
