@@ -1,0 +1,61 @@
+{
+  "name": "Agent IA - questions sur l'entrepot",
+  "nodes": [
+    {
+      "parameters": { "options": {} },
+      "name": "Chat",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 0],
+      "webhookId": "agent-ia-entrepot"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "Tu es l'analyste data de l'entreprise. Tu reponds en francais aux questions sur l'entrepot PostgreSQL (schema marts uniquement).\n\nMethode :\n1. Si tu ne connais pas les tables, interroge d'abord information_schema.columns (table_schema = 'marts').\n2. Ecris uniquement des SELECT, toujours avec LIMIT 100 au maximum.\n3. Donne la reponse chiffree, puis la requete SQL utilisee.\n4. Si une donnee manque ou qu'une requete echoue, dis-le : n'invente jamais un chiffre.",
+          "maxIterations": 8
+        }
+      },
+      "name": "Agent IA",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "model": { "__rl": true, "mode": "id", "value": "claude-sonnet-5-5" },
+        "options": { "maxTokensToSample": 2048, "temperature": 0 }
+      },
+      "name": "Claude",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [100, 220]
+    },
+    {
+      "parameters": { "contextWindowLength": 10 },
+      "name": "Memoire",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [260, 220]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Execute une requete SQL SELECT en lecture seule sur l'entrepot PostgreSQL (schema marts) et renvoie les lignes.",
+        "operation": "executeQuery",
+        "query": "{{ $fromAI('sql', 'Requete SELECT PostgreSQL a executer, avec LIMIT', 'string') }}",
+        "options": {}
+      },
+      "name": "Requete entrepot",
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.5,
+      "position": [420, 220]
+    }
+  ],
+  "connections": {
+    "Chat": { "main": [[{ "node": "Agent IA", "type": "main", "index": 0 }]] },
+    "Claude": { "ai_languageModel": [[{ "node": "Agent IA", "type": "ai_languageModel", "index": 0 }]] },
+    "Memoire": { "ai_memory": [[{ "node": "Agent IA", "type": "ai_memory", "index": 0 }]] },
+    "Requete entrepot": { "ai_tool": [[{ "node": "Agent IA", "type": "ai_tool", "index": 0 }]] }
+  }
+}
