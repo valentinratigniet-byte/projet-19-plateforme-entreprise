@@ -326,7 +326,7 @@ neuf.
 
 - **Limites à afficher dans le rapport, pas à taire** :
   - Aucun seuil de SLA n'existe dans les données du projet à ce jour — un "% dans le SLA" ne peut pas être calculé sans qu'un seuil métier soit d'abord défini avec le support (pas un manque du rapport, un manque de référentiel en amont).
-  - `numero_commande` permettrait de croiser un ticket avec `fait_ventes`, mais aucune clé fiable vérifiée entre les deux domaines à ce jour — même prudence que la vue transverse (rapport 6).
+  - `numero_commande` permet de croiser un ticket avec `fait_ventes` (`cmdnum`) pour les tickets de 2026 : les deux simulateurs sont alignés depuis le 13/11/2026 (~92 % des numéros cités sur la période Ventes existent). Les tickets 2024-2025 citent des commandes antérieures à l'export Ventes : introuvables par construction, à exclure du taux de rapprochement.
 
 <img src="wireframes/support-p1-sav.svg" width="440" alt="Wireframe page 1 -- Support Client, SAV"><br><sub>Page 1 — SAV</sub>
 <br>
