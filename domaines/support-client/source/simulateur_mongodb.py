@@ -12,9 +12,11 @@ recents utilisent "client_id". Aucune des deux n'est fausse -- il faut
 lire les deux formes, pas "corriger" les anciens documents.
 
 Autres defauts reels injectes :
-  - ~8% des tickets referencent un numero_commande qui n'existe pas
-    forcement cote Ventes/Commerce (client qui se trompe de numero, ou
-    commande hors de la periode suivie)
+  - 60% des tickets citent un numero_commande. Il pointe vers une vraie
+    commande de l'export AS/400 (Ventes/Commerce, 2026-01 a 2026-08) sauf
+    dans ~8% des cas (client qui se trompe de numero) ; les tickets de
+    2024-2025 citent des commandes anterieures, hors de la periode suivie
+    par l'export Ventes : introuvables par construction, pas une erreur
   - ~15% des tickets n'ont aucun message (cree puis jamais suivi)
   - satisfaction renseignee seulement sur ~35% des tickets resolus
     (la plupart des clients ignorent l'enquete de satisfaction --
@@ -50,6 +52,11 @@ def connecter():
         username="root",
         password=os.environ["MONGO_ROOT_PASSWORD"],
     )
+
+
+# Volumes emis par domaines/ventes-commerce/source/simulateur_as400.py
+# (150 commandes en 2026-01, +40 par mois, numerotees AAAAMM0000 a AAAAMM(n-1)).
+COMMANDES_PAR_MOIS_AS400 = {f"2026{m:02d}": 150 + (m - 1) * 40 for m in range(1, 9)}
 
 
 def generer_messages(rng: random.Random, date_creation: datetime, statut: str) -> list[dict]:
@@ -88,10 +95,18 @@ def generer_ticket(rng: random.Random, index: int, mois: datetime, forme_ancienn
     else:
         ticket["client_id"] = client_id
 
-    # ~8% referencent une commande qui peut ne pas exister cote Ventes/Commerce
+    # Numero de commande cite par le client. Memes tirages qu'avant (la sequence
+    # aleatoire, donc tout le reste du jeu de tickets, ne change pas) ; le numero
+    # tire est ramene dans la plage reellement emise par l'export AS/400 du mois.
     if rng.random() < 0.60:
         annee_mois_cmd = (mois - timedelta(days=rng.randint(0, 90))).strftime("%Y%m")
-        ticket["numero_commande"] = f"{annee_mois_cmd}{rng.randint(1, 9999):04d}"
+        tirage = rng.randint(1, 9999)
+        n_cmdes = COMMANDES_PAR_MOIS_AS400.get(annee_mois_cmd)
+        if n_cmdes and tirage % 100 >= 8:
+            numero = tirage % n_cmdes  # commande qui existe cote Ventes/Commerce
+        else:
+            numero = tirage  # hors periode Ventes, ou ~8% de numeros errones
+        ticket["numero_commande"] = f"{annee_mois_cmd}{numero:04d}"
 
     if statut in ("resolu", "ferme"):
         ticket["date_derniere_maj"] = date_creation + timedelta(days=rng.randint(1, 10))
